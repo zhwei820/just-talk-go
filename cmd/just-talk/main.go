@@ -11,6 +11,7 @@ import (
 	"github.com/c/just-talk-go/config"
 	"github.com/c/just-talk-go/engine"
 	"github.com/c/just-talk-go/hotkey"
+	"github.com/c/just-talk-go/internal/doctor"
 	"github.com/c/just-talk-go/internal/tui"
 	"github.com/c/just-talk-go/plugins"
 	"github.com/c/just-talk-go/plugins/overlay"
@@ -25,6 +26,7 @@ func main() {
 	verbose := flag.Bool("verbose", false, "verbose logging")
 	useTUI := flag.Bool("tui", true, "run with terminal UI")
 	noTUI := flag.Bool("no-tui", false, "run without terminal UI")
+	doctorOnly := flag.Bool("doctor", false, "run startup doctor and exit")
 	flag.Parse()
 	if *noTUI {
 		*useTUI = false
@@ -65,6 +67,15 @@ func main() {
 	}
 	if *backend != "" {
 		os.Setenv("JUST_TALK_BACKEND", *backend)
+	}
+
+	report := doctor.Run(cfg, *backend)
+	if *doctorOnly || !report.Healthy() {
+		report.Print(os.Stderr)
+		if report.Healthy() {
+			return
+		}
+		os.Exit(1)
 	}
 
 	provider, err := createProvider(*backend)

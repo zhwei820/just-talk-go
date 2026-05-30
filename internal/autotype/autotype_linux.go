@@ -62,30 +62,14 @@ func simulatePasteX11() error {
 }
 
 func simulatePasteWayland() error {
-	// Try ydotool
-	if _, err := exec.LookPath("ydotool"); err == nil {
-		// ydotool key 42:1 110:1 110:0 42:0  (Shift+Insert)
-		return exec.Command("ydotool", "key", "42:1", "110:1", "110:0", "42:0").Run()
-	}
-	// Try dotool
-	if _, err := exec.LookPath("dotool"); err == nil {
-		return exec.Command("dotool", "key", "shift+insert").Run()
-	}
-	// Try wtype
 	if _, err := exec.LookPath("wtype"); err == nil {
 		return exec.Command("wtype", "-M", "shift", "-k", "Insert", "-m", "shift").Run()
 	}
-	return fmt.Errorf("no Wayland input tool found (install ydotool, dotool, or wtype)")
+	return fmt.Errorf("wtype not found")
 }
 
 func pasteMethod() string {
 	if isWaylandSession() {
-		if _, err := exec.LookPath("ydotool"); err == nil {
-			return "wayland/ydotool+Shift+Insert"
-		}
-		if _, err := exec.LookPath("dotool"); err == nil {
-			return "wayland/dotool+Shift+Insert"
-		}
 		if _, err := exec.LookPath("wtype"); err == nil {
 			return "wayland/wtype+Shift+Insert"
 		}
