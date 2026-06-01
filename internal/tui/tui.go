@@ -364,6 +364,13 @@ func (m *Model) renderVoiceStatus() string {
 		}
 		parts = append(parts, fmt.Sprintf("剩余 %dms", remaining.Milliseconds()))
 	}
+	if status.State == "error" && !status.ErrorUntil.IsZero() {
+		remaining := time.Until(status.ErrorUntil)
+		if remaining < 0 {
+			remaining = 0
+		}
+		parts = append(parts, fmt.Sprintf("保留 %ds", int(remaining.Seconds())))
+	}
 	if status.PendingFinishes > 0 {
 		parts = append(parts, fmt.Sprintf("后台收尾 %d", status.PendingFinishes))
 	}

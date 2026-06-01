@@ -62,7 +62,7 @@ func NewASRClient(cfg ASRConfig, logger *slog.Logger) *ASRClient {
 func (c *ASRClient) Connect(ctx context.Context) error {
 	url := "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async"
 	c.logger.Info("connecting to ASR", "url", url)
-	conn, _, err := websocket.Dial(ctx, url, &websocket.DialOptions{
+	conn, resp, err := websocket.Dial(ctx, url, &websocket.DialOptions{
 		HTTPHeader: map[string][]string{
 			"X-Api-App-Key":     {c.cfg.AppKey},
 			"X-Api-Access-Key":  {c.cfg.AccessKey},
@@ -73,6 +73,9 @@ func (c *ASRClient) Connect(ctx context.Context) error {
 		},
 	})
 	if err != nil {
+		if resp != nil {
+			return fmt.Errorf("websocket dial: HTTP %d %s: %w", resp.StatusCode, resp.Status, err)
+		}
 		return fmt.Errorf("websocket dial: %w", err)
 	}
 	c.conn = conn

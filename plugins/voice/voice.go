@@ -20,7 +20,15 @@ import (
 	"github.com/c/just-talk-go/internal/clipboard"
 )
 
-const defaultStopDelayMs = 800
+const (
+	defaultStopDelayMs = 800
+	errorHoldDuration  = 10 * time.Second
+)
+
+var (
+	cancelRecordingCombo = hotkey.Combo{Mods: hotkey.ModNone, Key: hotkey.KeyEscape}
+	retryErrorCombo      = hotkey.Combo{Mods: hotkey.ModNone, Key: hotkey.KeyR}
+)
 
 var TUILog func(string)
 var TUILogBuf []string
@@ -38,6 +46,7 @@ type TUIVoiceStatus struct {
 	Recording       bool
 	Stopping        bool
 	StopAt          time.Time
+	ErrorUntil      time.Time
 	UpdatedAt       time.Time
 	SessionID       uint64
 	PendingFinishes int
@@ -180,6 +189,15 @@ func statsPath() string {
 func TUIStatus() TUIVoiceStatus {
 	tuiStatusMu.Lock()
 	defer tuiStatusMu.Unlock()
+	if tuiStatus.State == "error" && !tuiStatus.ErrorUntil.IsZero() && time.Now().After(tuiStatus.ErrorUntil) {
+		tuiStatus.State = "idle"
+		tuiStatus.Detail = "等待热键"
+		tuiStatus.Recording = false
+		tuiStatus.Stopping = false
+		tuiStatus.StopAt = time.Time{}
+		tuiStatus.ErrorUntil = time.Time{}
+		tuiStatus.UpdatedAt = time.Now()
+	}
 	return tuiStatus
 }
 
@@ -218,31 +236,37 @@ func markTUIHandled(evt hotkey.Event) {
 }
 
 type VoicePlugin struct {
-	env         engine.PluginEnv
-	logger      *slog.Logger
-	cfg         *config.Config
-	mu          sync.Mutex
-	eventOnce   sync.Once
-	events      chan hotkey.Event
-	combo       hotkey.Combo
-	mode        string
-	recording   bool
-	stopping    bool
-	userStopped bool
-	stopTimer   *time.Timer
-	stopAt      time.Time
-	startedAt   time.Time
-	sessionID   uint64
-	sessionGen  uint64
-	recorder    *Recorder
-	asrClient   *ASRClient
-	asrCancel   context.CancelFunc
-	autoSubmit  bool
-	stopDelayMs int
-	pendingDone int
+	env                    engine.PluginEnv
+	logger                 *slog.Logger
+	cfg                    *config.Config
+	mu                     sync.Mutex
+	eventOnce              sync.Once
+	events                 chan hotkey.Event
+	combo                  hotkey.Combo
+	mode                   string
+	recording              bool
+	stopping               bool
+	userStopped            bool
+	stopTimer              *time.Timer
+	stopAt                 time.Time
+	startedAt              time.Time
+	sessionID              uint64
+	sessionGen             uint64
+	recorder               *Recorder
+	asrClient              *ASRClient
+	asrCancel              context.CancelFunc
+	autoSubmit             bool
+	stopDelayMs            int
+	pendingDone            int
+	errorUntil             time.Time
+	errorTimer             *time.Timer
+	lastError              string
+	cancelHotkeyRegistered bool
+	retryHotkeyRegistered  bool
 }
 
 type recordingSession struct {
+	sessionID   uint64
 	recorder    *Recorder
 	asrClient   *ASRClient
 	asrCancel   context.CancelFunc
@@ -292,6 +316,7 @@ func (p *VoicePlugin) registerFromConfig(cfg *config.Config) error {
 	if !vc.Enabled {
 		p.mu.Lock()
 		oldCombo := p.combo
+		p.syncTransientHotkeysLocked(false, false)
 		p.combo = hotkey.Combo{}
 		p.mu.Unlock()
 		if oldCombo.Key != hotkey.KeyNone || oldCombo.Mods != hotkey.ModNone {
@@ -348,6 +373,20 @@ func (p *VoicePlugin) onHotkey(evt hotkey.Event) {
 	p.events <- evt
 	markTUIQueued(evt, len(p.events))
 	p.logger.Debug("voice hotkey queued", "type", evt.Type, "queue_len", len(p.events))
+}
+
+func (p *VoicePlugin) onCancelHotkey(evt hotkey.Event) {
+	if evt.Type != hotkey.KeyDown {
+		return
+	}
+	p.cancelRecording()
+}
+
+func (p *VoicePlugin) onRetryHotkey(evt hotkey.Event) {
+	if evt.Type != hotkey.KeyDown {
+		return
+	}
+	p.retryLastError()
 }
 
 func (p *VoicePlugin) startEventWorker(ctx context.Context) {
@@ -472,6 +511,7 @@ func (p *VoicePlugin) startRecording() {
 	p.startedAt = startedAt
 	p.stopping = false
 	p.stopAt = time.Time{}
+	p.clearErrorLocked()
 	p.asrCancel = cancel
 	p.publishStatusLocked()
 	p.mu.Unlock() // Release lock before slow WebSocket dial
@@ -482,6 +522,7 @@ func (p *VoicePlugin) startRecording() {
 func (p *VoicePlugin) connectASR(ctx context.Context, cancel context.CancelFunc, sessionID, sessionGen uint64, rec *Recorder, asrCfg ASRConfig) {
 	client := NewASRClient(asrCfg, p.logger)
 	if err := client.Connect(ctx); err != nil {
+		wasCanceled := ctx.Err() != nil
 		cancel()
 		p.mu.Lock()
 		currentSession := p.sessionGen == sessionGen
@@ -490,14 +531,14 @@ func (p *VoicePlugin) connectASR(ctx context.Context, cancel context.CancelFunc,
 			p.stopping, p.recorder, p.recording = false, nil, false
 			p.stopAt = time.Time{}
 			p.asrCancel = nil
-			if ctx.Err() == nil {
-				p.publishErrorLocked("ASR 连接失败", sessionID)
+			if !wasCanceled {
+				p.publishErrorLocked("ASR 连接失败: "+asrConnectErrorDetail(err), sessionID)
 			} else {
 				p.publishStatusLocked()
 			}
 		}
 		p.mu.Unlock()
-		if currentSession && ctx.Err() == nil {
+		if currentSession && !wasCanceled {
 			pout("❌ ASR 连接失败: %v", err)
 		}
 		return
@@ -546,6 +587,42 @@ func (p *VoicePlugin) restartRecording() {
 	p.startRecording()
 }
 
+func (p *VoicePlugin) cancelRecording() {
+	p.mu.Lock()
+	session := p.detachRecordingLocked()
+	hadError := p.lastError != "" && time.Now().Before(p.errorUntil)
+	p.clearErrorLocked()
+	p.publishStatusLocked()
+	p.mu.Unlock()
+
+	if session != nil {
+		if session.asrCancel != nil {
+			session.asrCancel()
+		}
+		if session.recorder != nil {
+			_, _ = session.recorder.Stop()
+		}
+		if session.asrClient != nil {
+			_ = session.asrClient.Close()
+		}
+		pout("🎤 已取消本次录音")
+	} else if hadError {
+		pout("⚠️  已关闭错误状态")
+	}
+}
+
+func (p *VoicePlugin) retryLastError() {
+	p.mu.Lock()
+	if p.recording || p.stopping || p.pendingDone > 0 || p.lastError == "" || time.Now().After(p.errorUntil) {
+		p.mu.Unlock()
+		return
+	}
+	p.clearErrorLocked()
+	p.publishStatusLocked()
+	p.mu.Unlock()
+	p.startRecording()
+}
+
 func (p *VoicePlugin) stopRecordingAsync() {
 	p.mu.Lock()
 	session := p.detachRecordingLocked()
@@ -570,6 +647,7 @@ func (p *VoicePlugin) detachRecordingLocked() *recordingSession {
 		return nil
 	}
 	session := &recordingSession{
+		sessionID:   p.sessionID,
 		recorder:    p.recorder,
 		asrClient:   p.asrClient,
 		asrCancel:   p.asrCancel,
@@ -621,6 +699,7 @@ func (p *VoicePlugin) finishRecordingSession(session *recordingSession) {
 			p.logger.Debug("finish session: ASR done")
 		case <-time.After(15 * time.Second):
 			pout("⚠️  识别超时")
+			p.publishError("识别超时: 等待 ASR final 超过 15s", session.sessionID)
 		}
 		if text := session.asrClient.LastText(); text != "" && session.userStopped {
 			audioDuration := time.Duration(0)
@@ -695,13 +774,37 @@ func (p *VoicePlugin) publishStatusLocked() {
 	case p.pendingDone > 0:
 		state, detail = "stopping", "正在停止并等待识别结果"
 		stopping = true
+	case p.lastError != "" && time.Now().Before(p.errorUntil):
+		state, detail = "error", p.lastError
 	}
 
 	p.publishStatusSnapshotLocked(state, detail, recording, stopping, stopAt, p.sessionID)
+	errorActive := state == "error" && time.Now().Before(p.errorUntil)
+	p.syncTransientHotkeysLocked(recording || stopping || p.pendingDone > 0 || errorActive, errorActive)
 }
 
 func (p *VoicePlugin) publishErrorLocked(detail string, sessionID uint64) {
+	p.lastError = detail
+	p.errorUntil = time.Now().Add(errorHoldDuration)
+	if p.errorTimer != nil {
+		p.errorTimer.Stop()
+	}
+	p.errorTimer = time.AfterFunc(errorHoldDuration, func() {
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		if p.lastError != "" && time.Now().After(p.errorUntil) {
+			p.clearErrorLocked()
+			p.publishStatusLocked()
+		}
+	})
 	p.publishStatusSnapshotLocked("error", detail, false, false, time.Time{}, sessionID)
+	p.syncTransientHotkeysLocked(true, true)
+}
+
+func (p *VoicePlugin) publishError(detail string, sessionID uint64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.publishErrorLocked(detail, sessionID)
 }
 
 func (p *VoicePlugin) publishStatusSnapshotLocked(state, detail string, recording, stopping bool, stopAt time.Time, sessionID uint64) {
@@ -710,9 +813,67 @@ func (p *VoicePlugin) publishStatusSnapshotLocked(state, detail string, recordin
 		s.State, s.Detail = state, detail
 		s.Recording, s.Stopping = recording, stopping
 		s.StopAt = stopAt
+		s.ErrorUntil = p.errorUntil
 		s.SessionID = sessionID
 		s.PendingFinishes = pendingDone
 	})
+}
+
+func (p *VoicePlugin) clearErrorLocked() {
+	if p.errorTimer != nil {
+		p.errorTimer.Stop()
+		p.errorTimer = nil
+	}
+	p.errorUntil = time.Time{}
+	p.lastError = ""
+}
+
+func (p *VoicePlugin) syncTransientHotkeysLocked(needCancel, needRetry bool) {
+	if needCancel && !p.cancelHotkeyRegistered {
+		if err := p.env.RegisterHotkey(cancelRecordingCombo, p.onCancelHotkey); err != nil {
+			p.logger.Warn("register cancel hotkey failed", "combo", cancelRecordingCombo, "error", err)
+		} else {
+			p.cancelHotkeyRegistered = true
+		}
+	} else if !needCancel && p.cancelHotkeyRegistered {
+		if err := p.env.UnregisterHotkey(cancelRecordingCombo); err != nil {
+			p.logger.Warn("unregister cancel hotkey failed", "combo", cancelRecordingCombo, "error", err)
+		}
+		p.cancelHotkeyRegistered = false
+	}
+
+	if needRetry && !p.retryHotkeyRegistered {
+		if err := p.env.RegisterHotkey(retryErrorCombo, p.onRetryHotkey); err != nil {
+			p.logger.Warn("register retry hotkey failed", "combo", retryErrorCombo, "error", err)
+		} else {
+			p.retryHotkeyRegistered = true
+		}
+	} else if !needRetry && p.retryHotkeyRegistered {
+		if err := p.env.UnregisterHotkey(retryErrorCombo); err != nil {
+			p.logger.Warn("unregister retry hotkey failed", "combo", retryErrorCombo, "error", err)
+		}
+		p.retryHotkeyRegistered = false
+	}
+}
+
+func shortError(err error) string {
+	msg := strings.TrimSpace(err.Error())
+	if msg == "" {
+		return "未知错误"
+	}
+	msg = strings.ReplaceAll(msg, "\n", " ")
+	if len([]rune(msg)) <= 120 {
+		return msg
+	}
+	return string([]rune(msg)[:120]) + "..."
+}
+
+func asrConnectErrorDetail(err error) string {
+	msg := err.Error()
+	if strings.Contains(msg, "HTTP 401") || strings.Contains(msg, "HTTP 403") {
+		return "认证失败，请检查 App Key 或 Access Key。"
+	}
+	return shortError(err)
 }
 
 func (p *VoicePlugin) streamAudio(ctx context.Context, rec *Recorder, client *ASRClient) {

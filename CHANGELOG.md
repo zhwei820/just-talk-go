@@ -14,6 +14,8 @@ All notable project changes are tracked here.
 - Removed non-cgo macOS fallback builds; Just Talk now requires cgo for native platform integration.
 - Replaced the old Claude-specific agent guide with `AGENTS.md` and clarified build documentation.
 - Improved toggle and hold hotkey behavior for fast repeated key presses.
+- Show ASR connection and final-result timeout errors in the status UI/overlay instead of immediately falling back to idle.
+- Added transient `Esc` cancel and `R` retry hotkeys while recording or showing retryable errors.
 
 ## 2026-05-30
 
