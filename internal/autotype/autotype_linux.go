@@ -38,6 +38,13 @@ import (
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/bendahl/uinput"
+)
+
+const (
+	uinputDev  = "/dev/uinput"
+	keyDelayMs = 15
 )
 
 func isWaylandSession() bool {
@@ -155,9 +162,37 @@ func simulatePasteX11() error {
 
 func simulatePasteWayland() error {
 	if _, err := exec.LookPath("wtype"); err == nil {
-		return exec.Command("wtype", "-M", "shift", "-k", "Insert", "-m", "shift").Run()
+		if err := exec.Command("wtype", "-M", "shift", "-k", "Insert", "-m", "shift").Run(); err == nil {
+			return nil
+		}
 	}
-	return fmt.Errorf("wtype not found")
+	return simulatePasteUinput()
+}
+
+func simulatePasteUinput() error {
+	keyboard, err := uinput.CreateKeyboard(uinputDev, []byte("just-talk virtual keyboard"))
+	if err != nil {
+		return fmt.Errorf("create uinput keyboard: %w", err)
+	}
+	defer keyboard.Close()
+
+	time.Sleep(80 * time.Millisecond)
+	if err := keyboard.KeyDown(uinput.KeyLeftshift); err != nil {
+		return fmt.Errorf("uinput shift down: %w", err)
+	}
+	time.Sleep(keyDelayMs * time.Millisecond)
+	if err := keyboard.KeyDown(uinput.KeyInsert); err != nil {
+		return fmt.Errorf("uinput insert down: %w", err)
+	}
+	time.Sleep(keyDelayMs * time.Millisecond)
+	if err := keyboard.KeyUp(uinput.KeyInsert); err != nil {
+		return fmt.Errorf("uinput insert up: %w", err)
+	}
+	time.Sleep(keyDelayMs * time.Millisecond)
+	if err := keyboard.KeyUp(uinput.KeyLeftshift); err != nil {
+		return fmt.Errorf("uinput shift up: %w", err)
+	}
+	return nil
 }
 
 func pasteMethod() string {
@@ -165,7 +200,7 @@ func pasteMethod() string {
 		if _, err := exec.LookPath("wtype"); err == nil {
 			return "wayland/wtype+Shift+Insert"
 		}
-		return "wayland/unknown"
+		return "wayland/uinput+Shift+Insert"
 	}
 	return "x11/XTest+Shift+Insert"
 }

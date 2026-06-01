@@ -5,6 +5,7 @@ package doctor
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strconv"
@@ -16,6 +17,9 @@ import (
 func runPlatform(cfg *config.Config, backend string) Report {
 	backend = detectBackend(backend)
 	report := Report{Platform: "linux", Backend: backend}
+	if desktop := desktopInfo(); desktop != "" {
+		report.Info = append(report.Info, "桌面环境："+desktop)
+	}
 
 	switch backend {
 	case "wayland":
@@ -96,7 +100,7 @@ func platformDependencyChecks(backend string) []Check {
 	case "wayland":
 		checks = append(checks,
 			commandAllCheck("Wayland 剪贴板", Required, []string{"wl-copy", "wl-paste"}, "安装 wl-clipboard。"),
-			commandAllCheck("Wayland 自动上屏", Required, []string{"wtype"}, "安装 wtype。"),
+			waylandAutotypeCheck(),
 		)
 	case "x11":
 		checks = append(checks,
@@ -104,6 +108,47 @@ func platformDependencyChecks(backend string) []Check {
 		)
 	}
 	return checks
+}
+
+func waylandAutotypeCheck() Check {
+	isKDE := isKDEPlasma()
+	if path, err := exec.LookPath("wtype"); err == nil {
+		check := Check{Name: "Wayland 自动上屏", OK: true, Severity: Required, Detail: "wtype=" + path}
+		if isKDE {
+			check.Notes = []string{"检测到 KDE Plasma；如果 wtype 不可用或无效，请改用 /dev/uinput 权限。"}
+		}
+		return check
+	}
+	if f, err := os.OpenFile("/dev/uinput", os.O_WRONLY, 0); err == nil {
+		_ = f.Close()
+		return Check{Name: "Wayland 自动上屏", OK: true, Severity: Required, Detail: "/dev/uinput 可写"}
+	}
+	fix := "安装 wtype，或通过 udev 规则/用户组授予当前用户写 /dev/uinput 的权限。"
+	if isKDE {
+		fix = "KDE Plasma Wayland 建议使用 /dev/uinput；请通过 udev 规则或 input/uinput 组授予当前用户写权限。"
+	}
+	return Check{
+		Name:     "Wayland 自动上屏",
+		OK:       false,
+		Severity: Required,
+		Detail:   "wtype 不可用，且当前用户不能写 /dev/uinput",
+		Fix:      fix,
+	}
+}
+
+func desktopInfo() string {
+	var parts []string
+	for _, name := range []string{"XDG_CURRENT_DESKTOP", "DESKTOP_SESSION", "KDE_SESSION_VERSION"} {
+		if v := strings.TrimSpace(os.Getenv(name)); v != "" {
+			parts = append(parts, name+"="+v)
+		}
+	}
+	return strings.Join(parts, " / ")
+}
+
+func isKDEPlasma() bool {
+	desktop := strings.ToLower(os.Getenv("XDG_CURRENT_DESKTOP") + " " + os.Getenv("DESKTOP_SESSION"))
+	return strings.Contains(desktop, "kde") || strings.Contains(desktop, "plasma") || os.Getenv("KDE_SESSION_VERSION") != ""
 }
 
 func asrConfigCheck(cfg *config.Config) Check {
