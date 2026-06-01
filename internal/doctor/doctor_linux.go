@@ -125,7 +125,7 @@ func waylandAutotypeCheck() Check {
 	}
 	fix := "安装 wtype，或通过 udev 规则/用户组授予当前用户写 /dev/uinput 的权限。"
 	if isKDE {
-		fix = "KDE Plasma Wayland 建议使用 /dev/uinput；请通过 udev 规则或 input/uinput 组授予当前用户写权限。"
+		fix = uinputPermissionFix()
 	}
 	return Check{
 		Name:     "Wayland 自动上屏",
@@ -134,6 +134,10 @@ func waylandAutotypeCheck() Check {
 		Detail:   "wtype 不可用，且当前用户不能写 /dev/uinput",
 		Fix:      fix,
 	}
+}
+
+func uinputPermissionFix() string {
+	return "KDE Plasma Wayland 建议使用 /dev/uinput。执行：sudo groupadd -f uinput；sudo usermod -aG uinput $USER；写入 /etc/udev/rules.d/70-uinput.rules：KERNEL==\"uinput\", MODE=\"0660\", GROUP=\"uinput\", OPTIONS+=\"static_node=uinput\"；然后 sudo modprobe uinput && sudo udevadm control --reload-rules && sudo udevadm trigger /dev/uinput，最后重新登录。"
 }
 
 func desktopInfo() string {
