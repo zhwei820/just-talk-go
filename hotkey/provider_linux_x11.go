@@ -127,6 +127,9 @@ type x11Provider struct {
 	// Track pressed keys to filter auto-repeat
 	pressedKeys map[uint]bool
 
+	// Standard modifier+key combos that have fired KeyDown.
+	activeCombos map[Combo]bool
+
 	// Track grabbed keycodes for cleanup
 	grabbedKeys map[uint]bool
 
@@ -146,12 +149,13 @@ func newX11Provider() (Provider, error) {
 	}
 
 	return &x11Provider{
-		channels:    make(map[Combo]chan<- Event),
-		display:     display,
-		root:        C.XDefaultRootWindow(display),
-		pressedKeys: make(map[uint]bool),
-		grabbedKeys: make(map[uint]bool),
-		logger:      slog.Default().With("platform", "x11"),
+		channels:     make(map[Combo]chan<- Event),
+		display:      display,
+		root:         C.XDefaultRootWindow(display),
+		pressedKeys:  make(map[uint]bool),
+		activeCombos: make(map[Combo]bool),
+		grabbedKeys:  make(map[uint]bool),
+		logger:       slog.Default().With("platform", "x11"),
 	}, nil
 }
 
@@ -327,18 +331,20 @@ func (p *x11Provider) handleKeyEvent(event *C.XEvent, isRelease bool) {
 
 	// Check registered combos
 	for combo, ch := range p.channels {
-		if p.comboMatches(combo, key, mods) {
-			evt := Event{
-				Combo: combo,
-				Time:  now,
+		if isRelease {
+			if p.activeCombos[combo] && x11ComboReleasedByKey(combo, key) {
+				delete(p.activeCombos, combo)
+				select {
+				case ch <- Event{Combo: combo, Type: KeyUp, Time: now}:
+				default:
+				}
 			}
-			if isRelease {
-				evt.Type = KeyUp
-			} else {
-				evt.Type = KeyDown
-			}
+			continue
+		}
+		if p.comboMatches(combo, key, mods) && !p.activeCombos[combo] {
+			p.activeCombos[combo] = true
 			select {
-			case ch <- evt:
+			case ch <- Event{Combo: combo, Type: KeyDown, Time: now}:
 			default:
 			}
 		}
@@ -389,6 +395,7 @@ func (p *x11Provider) Stop() error {
 		close(ch)
 		delete(p.channels, combo)
 	}
+	p.activeCombos = make(map[Combo]bool)
 
 	return nil
 }
@@ -560,4 +567,14 @@ func getEnvOrDefault(key, defaultVal string) string {
 		return v
 	}
 	return defaultVal
+}
+
+func x11ComboReleasedByKey(combo Combo, key KeyCode) bool {
+	if combo.Key == key {
+		return true
+	}
+	if mod := KeyCodeToModifier(key); mod != ModNone {
+		return combo.Mods&mod != 0
+	}
+	return false
 }
