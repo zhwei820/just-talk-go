@@ -96,6 +96,8 @@ func pasteX11(text string, logger *slog.Logger) error {
 }
 
 func pasteWayland(text string, logger *slog.Logger) error {
+	orig, _ := runClipboard("wl-paste", "--no-newline")
+
 	if err := pipeToCmd(text, "wl-copy", "--type", "text/plain;charset=utf-8"); err != nil {
 		return fmt.Errorf("set Wayland clipboard: %w", err)
 	}
@@ -108,6 +110,11 @@ func pasteWayland(text string, logger *slog.Logger) error {
 	time.Sleep(50 * time.Millisecond)
 	if err := simulatePaste(); err != nil {
 		return fmt.Errorf("simulate paste: %w", err)
+	}
+
+	if orig != "" && orig != text {
+		time.Sleep(300 * time.Millisecond)
+		_ = pipeToCmd(orig, "wl-copy", "--type", "text/plain;charset=utf-8")
 	}
 
 	logger.Debug("autotype done", "text_len", len(text), "method", pasteMethod())
