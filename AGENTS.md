@@ -14,6 +14,8 @@ This project uses native platform APIs and requires cgo for supported desktop bu
 
 ```bash
 make build              # Build for the current platform
+make install
+
 make run                # Run on the current platform
 make test               # Run all tests
 go test ./...           # Faster default test command

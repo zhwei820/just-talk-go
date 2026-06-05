@@ -64,7 +64,7 @@ func (c *ASRClient) Connect(ctx context.Context) error {
 	c.logger.Info("connecting to ASR", "url", url)
 	conn, resp, err := websocket.Dial(ctx, url, &websocket.DialOptions{
 		HTTPHeader: map[string][]string{
-			"X-Api-App-Key":     {c.cfg.AppKey},
+			"X-Api-Key":         {c.cfg.AppKey},
 			"X-Api-Access-Key":  {c.cfg.AccessKey},
 			"X-Api-Resource-Id": {c.cfg.ResourceID},
 			"X-Api-Request-Id":  {uuid.New().String()},
