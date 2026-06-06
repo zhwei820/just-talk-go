@@ -29,18 +29,22 @@ type OverlayConfig struct {
 }
 
 type VoiceConfig struct {
-	Enabled     bool     `toml:"enabled"`
-	Mode        string   `toml:"mode"`
-	PushToTalk  string   `toml:"push_to_talk"`
-	Device      string   `toml:"device"`
-	Gain        int      `toml:"gain"`
-	StopDelayMs int      `toml:"stop_delay_ms"`
-	Language    string   `toml:"language"`
-	AutoSubmit  bool     `toml:"auto_submit"`
-	AppKey      string   `toml:"app_key"`
-	AccessKey   string   `toml:"access_key"`
-	ResourceID  string   `toml:"resource_id"`
-	Hotwords    []string `toml:"hotwords"`
+	Enabled     bool   `toml:"enabled"`
+	Mode        string `toml:"mode"`
+	PushToTalk  string `toml:"push_to_talk"`
+	Device      string `toml:"device"`
+	Gain        int    `toml:"gain"`
+	StopDelayMs int    `toml:"stop_delay_ms"`
+	Language    string `toml:"language"`
+	AutoSubmit  bool   `toml:"auto_submit"`
+
+	AppKey    string `toml:"app_key"`    // v1
+	AccessKey string `toml:"access_key"` // v1
+
+	ApiKey string `toml:"api_key"` // v2
+
+	ResourceID string   `toml:"resource_id"`
+	Hotwords   []string `toml:"hotwords"`
 }
 
 func Default() *Config {
