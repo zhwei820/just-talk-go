@@ -18,3 +18,4 @@ config.toml
 # Editor and OS noise
 .DS_Store
 Thumbs.db
+agentic/reflect/
