@@ -19,3 +19,4 @@ config.toml
 .DS_Store
 Thumbs.db
 agentic/reflect/
+README.en.md

@@ -41,19 +41,23 @@ func pastePlatform(text string, logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("clipboard: %w", err)
 	}
-	orig, _ := cb.Get()
+
+	snap, _ := cb.Snapshot()
+
 	if err := cb.Set(text); err != nil {
+		cb.Free(snap)
 		return fmt.Errorf("set clipboard: %w", err)
 	}
 
 	time.Sleep(50 * time.Millisecond)
 	if err := simulatePaste(); err != nil {
+		cb.Free(snap)
 		return fmt.Errorf("simulate paste: %w", err)
 	}
 
-	if orig != "" && orig != text {
+	if snap != nil {
 		time.Sleep(300 * time.Millisecond)
-		_ = cb.Set(orig)
+		_ = cb.Restore(snap)
 	}
 
 	logger.Debug("autotype done", "text_len", len(text), "method", pasteMethod())

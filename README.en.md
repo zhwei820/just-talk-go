@@ -143,3 +143,5 @@ This project does not accept pull requests. Issues are welcome for bug reports, 
 ## License
 
 Just Talk is licensed under the GNU General Public License v3.0.
+
+

@@ -3,10 +3,17 @@ package clipboard
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
-// Clipboard provides Get/Set operations on the system clipboard.
+// Snapshot captures the complete pasteboard state for later restoration.
+// The caller must call Free if Restore is never invoked.
+type Snapshot struct {
+	payload any
+}
+
+// Clipboard provides clipboard operations.
 type Clipboard struct {
 	getCmd         []string
 	setCmd         []string
@@ -14,6 +21,8 @@ type Clipboard struct {
 	getFunc        func() (string, error)
 	setFunc        func(string) error
 	setPrimaryFunc func(string) error
+	snapshotFunc   func() (*Snapshot, error)
+	restoreFunc    func(*Snapshot) error
 }
 
 // New creates a platform-specific Clipboard.
@@ -52,6 +61,44 @@ func (c *Clipboard) SetPrimary(text string) error {
 	defer cancel()
 	_, err := runCmdWithInput(ctx, c.setPrimaryCmd, text)
 	return err
+}
+
+// Snapshot captures the full pasteboard state (text, images, files, etc.).
+// On platforms without a native implementation, it falls back to text-only.
+func (c *Clipboard) Snapshot() (*Snapshot, error) {
+	if c.snapshotFunc != nil {
+		return c.snapshotFunc()
+	}
+	text, err := c.Get()
+	if err != nil {
+		return nil, fmt.Errorf("snapshot: %w", err)
+	}
+	return &Snapshot{payload: text}, nil
+}
+
+// Restore puts the pasteboard back to the state captured by Snapshot.
+func (c *Clipboard) Restore(s *Snapshot) error {
+	if s == nil {
+		return nil
+	}
+	if c.restoreFunc != nil {
+		return c.restoreFunc(s)
+	}
+	text, ok := s.payload.(string)
+	if !ok {
+		return nil // text-only fallback can't restore non-text content
+	}
+	return c.Set(text)
+}
+
+// Free releases resources held by a snapshot that will never be restored.
+func (c *Clipboard) Free(s *Snapshot) {
+	if s == nil {
+		return
+	}
+	if c.restoreFunc != nil {
+		_ = c.restoreFunc(s) // restore frees the snapshot handle
+	}
 }
 
 type clipCmd struct {
