@@ -14,7 +14,7 @@ Just Talk 是一个面向桌面环境的语音输入工具。它通过全局快�
 
 - 全局快捷键录音，支持 `toggle` 和 `hold` 两种模式。
 - 语音热键限定为适合作为全局快捷键的按键：支持纯修饰键、功能键、Tab、CapsLock、方向键和导航键等；不支持字母、数字、标点、空格等普通字符键。
-- 豆包大模型流式 ASR，支持双向流优化版和二遍识别。
+- 流式 ASR：默认微软 Azure 语音服务，可切换为豆包大模型（火山引擎）。
 - 自动复制到剪贴板，支持自动上屏。
 - Wayland / X11 / macOS 顶层录音状态胶囊提示。
 - TUI 配置界面，支持热键、模式、自动上屏、停止延迟、热词等配置。
@@ -114,6 +114,17 @@ push_to_talk = "Alt+Super"
 - 支持：功能键 `F1` 到 `F24`，如 `F9`、`Alt+F8`。
 - 支持：非文本控制键和导航键，如 `Tab`、`Enter`、`Escape`、`Backspace`、`CapsLock`、`Up`、`Down`、`Left`、`Right`、`Home`、`End`、`PageUp`、`PageDown`、`Insert`、`Delete`。
 - 不支持：字母、数字、标点、空格、数字小键盘数字和符号等会输入文本的按键，如 `Alt+G`、`G`、`Alt+1`、`Alt+Space`。
+
+ASR 配置（默认 Azure，在 Azure 门户创建「语音服务」资源，取「密钥和终结点」页的密钥与区域）：
+
+```toml
+[voice]
+provider = "azure"
+azure_key = "<密钥>"
+azure_region = "eastasia"
+```
+
+使用火山引擎时设 `provider = "volcengine"`，并填写 `app_key`、`access_key`。
 
 热词示例：
 

@@ -157,15 +157,23 @@ func isKDEPlasma() bool {
 
 func asrConfigCheck(cfg *config.Config) Check {
 	var missing []string
-	if strings.TrimSpace(cfg.Voice.AppKey) == "" {
-		missing = append(missing, "app_key")
+	require := func(key, value string) {
+		if strings.TrimSpace(value) == "" {
+			missing = append(missing, key)
+		}
 	}
-	if strings.TrimSpace(cfg.Voice.AccessKey) == "" {
-		missing = append(missing, "access_key")
-	}
-	resourceID := strings.TrimSpace(cfg.Voice.ResourceID)
-	if resourceID == "" {
-		resourceID = "volc.bigasr.sauc.duration"
+	detail := "provider=azure region=" + cfg.Voice.AzureRegion
+	if cfg.Voice.Provider == "volcengine" {
+		require("app_key", cfg.Voice.AppKey)
+		require("access_key", cfg.Voice.AccessKey)
+		resourceID := strings.TrimSpace(cfg.Voice.ResourceID)
+		if resourceID == "" {
+			resourceID = "volc.bigasr.sauc.duration"
+		}
+		detail = "provider=volcengine resource_id=" + resourceID
+	} else {
+		require("azure_key", cfg.Voice.AzureKey)
+		require("azure_region", cfg.Voice.AzureRegion)
 	}
 	if len(missing) > 0 {
 		return Check{
@@ -174,7 +182,7 @@ func asrConfigCheck(cfg *config.Config) Check {
 			Fix:    "在 ~/.config/just-talk/config.toml 的 [voice] 中填写 " + strings.Join(missing, ", ") + "。",
 		}
 	}
-	return Check{Name: "ASR 配置", OK: true, Severity: Warning, Detail: "resource_id=" + resourceID}
+	return Check{Name: "ASR 配置", OK: true, Severity: Warning, Detail: detail}
 }
 
 func inputAccessCheck() Check {

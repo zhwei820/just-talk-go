@@ -4,6 +4,7 @@ All notable project changes are tracked here.
 
 ## Unreleased
 
+- Switched the default ASR engine to Microsoft Azure Speech (`provider = "azure"`, `azure_key`, `azure_region`); Volcengine remains available via `provider = "volcengine"`.
 - Restricted voice hotkeys to non-text global shortcut keys, rejecting letters, digits, punctuation, Space, and similar text-producing keys.
 - Avoid duplicate auto-submit on KDE Plasma by using uinput directly and not writing the Wayland primary selection there.
 - TUI is now the default startup mode.

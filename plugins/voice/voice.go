@@ -254,7 +254,7 @@ type VoicePlugin struct {
 	sessionID              uint64
 	sessionGen             uint64
 	recorder               *Recorder
-	asrClient              *ASRClient
+	asrClient              asrStream
 	asrCancel              context.CancelFunc
 	autoSubmit             bool
 	stopDelayMs            int
@@ -273,7 +273,7 @@ type VoicePlugin struct {
 type recordingSession struct {
 	sessionID   uint64
 	recorder    *Recorder
-	asrClient   *ASRClient
+	asrClient   asrStream
 	asrCancel   context.CancelFunc
 	autoSubmit  bool
 	userStopped bool
@@ -344,6 +344,7 @@ func (p *VoicePlugin) registerFromConfig(cfg *config.Config) error {
 	oldCombo := p.combo
 	oldMode := p.mode
 	sameRegistration := oldCombo == combo && oldMode == mode
+	p.cfg = cfg
 	p.combo = combo
 	p.mode = mode
 	p.autoSubmit = vc.AutoSubmit
@@ -513,7 +514,11 @@ func (p *VoicePlugin) startRecording() {
 		return
 	}
 	vc := p.cfg.Voice
-	asrCfg := ASRConfig{AppKey: vc.AppKey, AccessKey: vc.AccessKey, ResourceID: vc.ResourceID, Language: vc.Language, Hotwords: vc.Hotwords}
+	asrCfg := ASRConfig{
+		Provider: vc.Provider, AzureKey: vc.AzureKey, AzureRegion: vc.AzureRegion,
+		AppKey: vc.AppKey, AccessKey: vc.AccessKey, ResourceID: vc.ResourceID,
+		Language: vc.Language, Hotwords: vc.Hotwords,
+	}
 	if asrCfg.ResourceID == "" {
 		asrCfg.ResourceID = "volc.bigasr.sauc.duration"
 	}
@@ -558,7 +563,7 @@ func (p *VoicePlugin) startRecording() {
 }
 
 func (p *VoicePlugin) connectASR(ctx context.Context, cancel context.CancelFunc, sessionID, sessionGen uint64, rec *Recorder, asrCfg ASRConfig) {
-	client := NewASRClient(asrCfg, p.logger)
+	client := newASRStream(asrCfg, p.logger)
 	if err := client.Connect(ctx); err != nil {
 		wasCanceled := ctx.Err() != nil
 		cancel()
@@ -973,12 +978,12 @@ func shortError(err error) string {
 func asrConnectErrorDetail(err error) string {
 	msg := err.Error()
 	if strings.Contains(msg, "HTTP 401") || strings.Contains(msg, "HTTP 403") {
-		return "认证失败，请检查 App Key 或 Access Key。"
+		return "认证失败，请检查 ASR 密钥配置。"
 	}
 	return shortError(err)
 }
 
-func (p *VoicePlugin) streamAudio(ctx context.Context, rec *Recorder, client *ASRClient) {
+func (p *VoicePlugin) streamAudio(ctx context.Context, rec *Recorder, client asrStream) {
 	buf := make([]byte, 6400)
 	for {
 		select {

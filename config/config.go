@@ -38,6 +38,11 @@ type VoiceConfig struct {
 	Language    string `toml:"language"`
 	AutoSubmit  bool   `toml:"auto_submit"`
 
+	// Provider is "azure" (default) or "volcengine".
+	Provider    string `toml:"provider"`
+	AzureKey    string `toml:"azure_key"`
+	AzureRegion string `toml:"azure_region"`
+
 	AppKey    string `toml:"app_key"`    // v1
 	AccessKey string `toml:"access_key"` // v1
 
@@ -51,7 +56,7 @@ func Default() *Config {
 	return &Config{
 		Voice: VoiceConfig{
 			Enabled: true, Mode: "toggle", PushToTalk: "Alt+Super",
-			Language: "zh-CN", AutoSubmit: true, ResourceID: "volc.bigasr.sauc.duration",
+			Language: "zh-CN", AutoSubmit: true, Provider: "azure", ResourceID: "volc.bigasr.sauc.duration",
 		},
 		Overlay: OverlayConfig{
 			Enabled: true, Position: "bottom-center", IdleVisible: false, Scale: 1.0,

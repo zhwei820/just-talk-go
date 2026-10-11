@@ -14,11 +14,32 @@ import (
 )
 
 type ASRConfig struct {
-	AppKey     string
-	AccessKey  string
-	ResourceID string
-	Language   string
-	Hotwords   []string
+	Provider    string
+	AzureKey    string
+	AzureRegion string
+	AppKey      string
+	AccessKey   string
+	ResourceID  string
+	Language    string
+	Hotwords    []string
+}
+
+type asrStream interface {
+	Connect(ctx context.Context) error
+	SendAudio(ctx context.Context, pcm []byte, isLast bool) error
+	Results() <-chan ASRResult
+	Done() <-chan struct{}
+	Final() <-chan struct{}
+	LastText() string
+	ReceiveLoop(ctx context.Context)
+	Close() error
+}
+
+func newASRStream(cfg ASRConfig, logger *slog.Logger) asrStream {
+	if cfg.Provider == "volcengine" {
+		return NewASRClient(cfg, logger)
+	}
+	return NewAzureASRClient(cfg, logger)
 }
 
 type ASRClient struct {
