@@ -20,6 +20,7 @@ Just Talk 是一个面向桌面环境的语音输入工具。它通过全局快�
 - TUI 配置界面，支持热键、模式、自动上屏、停止延迟、热词等配置。
 - 热词增强识别，适合项目名、人名、英文术语和专有名词。
 - 录音历史统计，包括历史次数、总字数、平均速度和最近速度。
+- 区域截图：默认 `Ctrl+Command+A` 鼠标框选，截图直接进剪贴板。
 
 ## 平台状态
 
@@ -140,6 +141,17 @@ macOS 热键写法：
 # Option 等价于 Alt，Command/Cmd 等价于 Super
 push_to_talk = "Option+Command"
 ```
+
+区域截图（框选后图片直接进剪贴板，Esc 取消）：
+
+```toml
+[screenshot]
+enabled = true
+hotkey = "Ctrl+Cmd+A"
+```
+
+- macOS 通过模拟系统快捷键 `⌃⇧⌘4`（拷贝所选区域的图片）调起系统截图，不需要给终端授予「屏幕录制」权限；若在「系统设置 → 键盘 → 键盘快捷键 → 截屏」中改掉或关闭了该快捷键，截图会失效。框选前会在光标上叠加红色十字，按下鼠标、Esc 或 15 秒后消失。默认热键与 macOS 微信截图键相同，两边会同时触发，可改其中一方。
+- Linux X11 需要 `maim`；Wayland 需要 `slurp` 和 `grim`，仅支持 Sway / Hyprland 等 wlroots 合成器，GNOME / KDE Wayland 暂不支持。
 
 ## 更新日志
 

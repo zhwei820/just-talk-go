@@ -20,6 +20,7 @@ It is built for people who want to type less and speak more while coding, chatti
 - TUI configuration for hotkeys, mode, auto-submit, stop delay, hotwords, and related settings.
 - ASR hotwords for project names, people names, English terms, and domain-specific vocabulary.
 - Usage statistics for total sessions, total recognized characters, average speed, and recent speed.
+- Region screenshot: `Ctrl+Command+A` by default, select with the mouse and the image goes straight to the clipboard.
 
 ## Platform Status
 
@@ -140,6 +141,17 @@ macOS hotkey example:
 # Option is Alt; Command/Cmd is Super.
 push_to_talk = "Option+Command"
 ```
+
+Region screenshot (the selected image is copied to the clipboard; Esc cancels):
+
+```toml
+[screenshot]
+enabled = true
+hotkey = "Ctrl+Cmd+A"
+```
+
+- macOS triggers the system shortcut `⌃⇧⌘4` (copy picture of selected area), so the terminal does not need Screen Recording permission; it stops working if that shortcut is changed or disabled under System Settings > Keyboard > Keyboard Shortcuts > Screenshots. A red crosshair is drawn over the cursor until you press the mouse, press Esc, or 15 seconds pass. The default hotkey matches the macOS WeChat screenshot shortcut and both will fire, so change one of them.
+- Linux X11 needs `maim`; Wayland needs `slurp` and `grim` and only works on wlroots compositors such as Sway / Hyprland. GNOME / KDE Wayland are not supported yet.
 
 ## Changelog
 

@@ -1,30 +1,28 @@
-.PHONY: build install test clean run
+.PHONY: help build install test clean run deps
+.DEFAULT_GOAL := help
 
 APP_NAME := just-talk
 CMD_DIR := ./cmd/just-talk
 BUILD_DIR := ./build
 
-# Build for current platform
-build:
+help: ## Show available targets
+	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+build: ## Build for current platform
 	go build -o $(BUILD_DIR)/$(APP_NAME) $(CMD_DIR)
 
-# Install to ~/.local/bin
-install: build
+install: build ## Install to ~/.local/bin
 	$(BUILD_DIR)/$(APP_NAME) --install
 
-# Run (current platform)
-run:
+run: ## Run (current platform)
 	go run $(CMD_DIR)
 
-# Test
-test:
+test: ## Run all tests
 	go test ./... -v
 
-# Clean
-clean:
+clean: ## Remove build output
 	rm -rf $(BUILD_DIR)
 
-# Install dependencies
-deps:
+deps: ## Tidy and download dependencies
 	go mod tidy
 	go mod download

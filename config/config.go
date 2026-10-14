@@ -11,9 +11,15 @@ import (
 )
 
 type Config struct {
-	Voice   VoiceConfig   `toml:"voice"`
-	Debug   DebugConfig   `toml:"debug"`
-	Overlay OverlayConfig `toml:"overlay"`
+	Voice      VoiceConfig      `toml:"voice"`
+	Debug      DebugConfig      `toml:"debug"`
+	Overlay    OverlayConfig    `toml:"overlay"`
+	Screenshot ScreenshotConfig `toml:"screenshot"`
+}
+
+type ScreenshotConfig struct {
+	Enabled bool   `toml:"enabled"`
+	Hotkey  string `toml:"hotkey"`
 }
 
 type DebugConfig struct {
@@ -61,6 +67,7 @@ func Default() *Config {
 		Overlay: OverlayConfig{
 			Enabled: true, Position: "bottom-center", IdleVisible: false, Scale: 1.0,
 		},
+		Screenshot: ScreenshotConfig{Enabled: true, Hotkey: "Ctrl+Cmd+A"},
 	}
 }
 

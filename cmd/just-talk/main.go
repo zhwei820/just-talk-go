@@ -17,6 +17,7 @@ import (
 	"github.com/c/just-talk-go/internal/tui"
 	"github.com/c/just-talk-go/plugins"
 	"github.com/c/just-talk-go/plugins/overlay"
+	"github.com/c/just-talk-go/plugins/screenshot"
 	"github.com/c/just-talk-go/plugins/voice"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -31,6 +32,7 @@ func main() {
 	doctorOnly := flag.Bool("doctor", false, "run startup doctor and exit")
 	installOnly := flag.Bool("install", false, "install just-talk to ~/.local/bin")
 	overlayHelper := flag.Bool("overlay-helper", false, "run macOS overlay helper")
+	cursorHighlight := flag.Bool("cursor-highlight", false, "run macOS screenshot cursor highlight")
 	overlayPosition := flag.String("overlay-position", "top-right", "overlay helper position")
 	overlayScale := flag.Float64("overlay-scale", 1.0, "overlay helper scale")
 	flag.Parse()
@@ -46,6 +48,10 @@ func main() {
 			fmt.Fprintf(os.Stderr, "overlay helper error: %v\n", err)
 			os.Exit(1)
 		}
+		return
+	}
+	if *cursorHighlight {
+		screenshot.RunCursorHighlight()
 		return
 	}
 	if *noTUI {
@@ -114,6 +120,7 @@ func main() {
 	}
 	eng.LoadPlugin(voice.NewVoicePlugin())
 	eng.LoadPlugin(overlay.NewOverlayPlugin())
+	eng.LoadPlugin(screenshot.NewScreenshotPlugin())
 	if p := config.FindConfig(); p != "" {
 		eng.WatchConfig(p)
 	}

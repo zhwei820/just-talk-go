@@ -38,6 +38,9 @@ func runPlatform(cfg *config.Config, backend string) Report {
 	if cfg.Voice.Enabled {
 		report.Checks = append(report.Checks, asrConfigCheck(cfg))
 	}
+	if cfg.Screenshot.Enabled {
+		report.Checks = append(report.Checks, screenshotToolsCheck(backend))
+	}
 	return report
 }
 
@@ -108,6 +111,13 @@ func platformDependencyChecks(backend string) []Check {
 		)
 	}
 	return checks
+}
+
+func screenshotToolsCheck(backend string) Check {
+	if backend == "wayland" {
+		return commandAllCheck("区域截图", Warning, []string{"slurp", "grim"}, "安装 slurp 和 grim（仅 wlroots 合成器可用），或在配置中设置 [screenshot] enabled = false。")
+	}
+	return commandAllCheck("区域截图", Warning, []string{"maim"}, "安装 maim，或在配置中设置 [screenshot] enabled = false。")
 }
 
 func waylandAutotypeCheck() Check {
