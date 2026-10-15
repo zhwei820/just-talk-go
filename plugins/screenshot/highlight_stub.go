@@ -2,5 +2,5 @@
 
 package screenshot
 
-// RunCursorHighlight is macOS-only; Linux selection tools draw their own cursor.
-func RunCursorHighlight() {}
+// RunScreenshotUI is macOS-only; Linux selection tools draw their own UI.
+func RunScreenshotUI() int { return 0 }

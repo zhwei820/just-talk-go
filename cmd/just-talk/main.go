@@ -32,7 +32,7 @@ func main() {
 	doctorOnly := flag.Bool("doctor", false, "run startup doctor and exit")
 	installOnly := flag.Bool("install", false, "install just-talk to ~/.local/bin")
 	overlayHelper := flag.Bool("overlay-helper", false, "run macOS overlay helper")
-	cursorHighlight := flag.Bool("cursor-highlight", false, "run macOS screenshot cursor highlight")
+	screenshotUI := flag.Bool("screenshot-ui", false, "run macOS screenshot freeze and selection helper")
 	overlayPosition := flag.String("overlay-position", "top-right", "overlay helper position")
 	overlayScale := flag.Float64("overlay-scale", 1.0, "overlay helper scale")
 	flag.Parse()
@@ -50,9 +50,8 @@ func main() {
 		}
 		return
 	}
-	if *cursorHighlight {
-		screenshot.RunCursorHighlight()
-		return
+	if *screenshotUI {
+		os.Exit(screenshot.RunScreenshotUI())
 	}
 	if *noTUI {
 		*useTUI = false

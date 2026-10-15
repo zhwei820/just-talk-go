@@ -3,27 +3,7 @@
 package screenshot
 
 // #cgo LDFLAGS: -framework ApplicationServices -framework AppKit
-// #include <ApplicationServices/ApplicationServices.h>
 // #include "highlight_darwin.h"
-//
-// static int jt_post_region_screenshot_shortcut(void) {
-// 	const CGKeyCode key4 = 21; // kVK_ANSI_4
-// 	const CGEventFlags flags = kCGEventFlagMaskControl | kCGEventFlagMaskShift | kCGEventFlagMaskCommand;
-// 	CGEventRef down = CGEventCreateKeyboardEvent(NULL, key4, true);
-// 	CGEventRef up = CGEventCreateKeyboardEvent(NULL, key4, false);
-// 	if (!down || !up) {
-// 		if (down) CFRelease(down);
-// 		if (up) CFRelease(up);
-// 		return -1;
-// 	}
-// 	CGEventSetFlags(down, flags);
-// 	CGEventSetFlags(up, flags);
-// 	CGEventPost(kCGHIDEventTap, down);
-// 	CGEventPost(kCGHIDEventTap, up);
-// 	CFRelease(down);
-// 	CFRelease(up);
-// 	return 0;
-// }
 import "C"
 
 import (
@@ -35,51 +15,47 @@ import (
 	"runtime"
 )
 
-const cursorHighlightTimeoutSeconds = 15
+const selectionTimeoutSeconds = 60
 
-// Posts the system "copy picture of selected area to clipboard" shortcut
-// (⌃⇧⌘4) instead of running screencapture: the system screenshot UI owns the
-// Screen Recording permission, so the launching terminal only needs the
-// Accessibility permission Just Talk already requires. It stops working if the
-// user remaps or disables that shortcut in System Settings > Keyboard.
-// Selection result and cancellation are not observable from here.
+// Posts the system screenshot shortcuts instead of running screencapture: the
+// system screenshot UI owns the Screen Recording permission, so the launching
+// terminal only needs the Accessibility permission Just Talk already requires.
+// It stops working if the user remaps or disables ⌃⇧⌘3 / ⌃⇧⌘4 in System
+// Settings > Keyboard.
 //
-// The cursor cross runs in a child process because AppKit needs a main thread
-// that the Go runtime does not give us inside the daemon.
+// Freezing, the cursor cross and the region shortcut run in a child process
+// because AppKit needs a main thread that the Go runtime does not give us
+// inside the daemon.
 func captureRegionToClipboard(ctx context.Context, logger *slog.Logger) error {
-	highlight, err := startCursorHighlight(ctx)
+	exe, err := os.Executable()
 	if err != nil {
-		logger.Warn("cursor highlight unavailable", "error", err)
+		return fallbackRegionShortcut(logger, err)
 	}
-	if C.jt_post_region_screenshot_shortcut() != 0 {
-		if highlight != nil {
-			_ = highlight.Process.Kill()
-			_ = highlight.Wait()
-		}
+	cmd := exec.CommandContext(ctx, exe, "--screenshot-ui")
+	if err := cmd.Start(); err != nil {
+		return fallbackRegionShortcut(logger, err)
+	}
+	err = cmd.Wait()
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) && exitErr.ExitCode() == C.JT_SCREENSHOT_UI_CANCELLED {
+		return errCancelled
+	}
+	return err
+}
+
+func fallbackRegionShortcut(logger *slog.Logger, cause error) error {
+	logger.Warn("screenshot helper unavailable, selecting on live screen", "error", cause)
+	if C.jt_post_screenshot_shortcut(C.JT_SCREENSHOT_KEY_REGION) != 0 {
 		return errors.New("create keyboard event failed")
-	}
-	if highlight != nil {
-		_ = highlight.Wait()
 	}
 	return nil
 }
 
-func startCursorHighlight(ctx context.Context) (*exec.Cmd, error) {
-	exe, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-	cmd := exec.CommandContext(ctx, exe, "--cursor-highlight")
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	return cmd, nil
-}
-
-// RunCursorHighlight shows a cross that follows the mouse until a mouse button
-// is pressed, Esc is pressed, or the timeout expires. It blocks.
-func RunCursorHighlight() {
+// RunScreenshotUI freezes the screen, shows a cross on the cursor and waits
+// for the system region selection to finish. It blocks and returns the
+// process exit code.
+func RunScreenshotUI() int {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	C.jt_cursor_highlight_run(cursorHighlightTimeoutSeconds)
+	return int(C.jt_screenshot_ui_run(selectionTimeoutSeconds))
 }

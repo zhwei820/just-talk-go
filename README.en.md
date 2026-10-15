@@ -150,7 +150,7 @@ enabled = true
 hotkey = "Ctrl+Cmd+A"
 ```
 
-- macOS triggers the system shortcut `⌃⇧⌘4` (copy picture of selected area), so the terminal does not need Screen Recording permission; it stops working if that shortcut is changed or disabled under System Settings > Keyboard > Keyboard Shortcuts > Screenshots. A red crosshair is drawn over the cursor until you press the mouse, press Esc, or 15 seconds pass. The default hotkey matches the macOS WeChat screenshot shortcut and both will fire, so change one of them.
+- macOS triggers the system shortcut `⌃⇧⌘4` (copy picture of selected area), so the terminal does not need Screen Recording permission. When the hotkey is pressed it first grabs the main display with `⌃⇧⌘3` and covers the screen with that still image, so you select from a frozen screen (you will hear the shutter sound twice); secondary displays are not frozen. Freezing or capturing stops working if these shortcuts are changed or disabled under System Settings > Keyboard > Keyboard Shortcuts > Screenshots. A red crosshair is drawn over the cursor until you press the mouse; Esc or 60 seconds without finishing counts as cancelled and the previous clipboard is restored. The default hotkey matches the macOS WeChat screenshot shortcut and both will fire, so change one of them.
 - Linux X11 needs `maim`; Wayland needs `slurp` and `grim` and only works on wlroots compositors such as Sway / Hyprland. GNOME / KDE Wayland are not supported yet.
 
 ## Changelog

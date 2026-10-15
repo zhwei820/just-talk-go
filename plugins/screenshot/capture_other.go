@@ -12,4 +12,4 @@ func captureRegionToClipboard(context.Context, *slog.Logger) error {
 	return errors.New("screenshot is not supported on this platform")
 }
 
-func RunCursorHighlight() {}
+func RunScreenshotUI() int { return 0 }
