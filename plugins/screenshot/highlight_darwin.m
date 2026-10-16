@@ -1,6 +1,7 @@
 //go:build darwin && cgo
 
 #include "highlight_darwin.h"
+#include "annotate_darwin.h"
 
 #import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
@@ -191,12 +192,15 @@ int jt_screenshot_ui_run(double timeout_seconds) {
 		[cross orderFrontRegardless];
 
 		NSInteger selectionBase = [pb changeCount];
+		// Filled in while the user drags the selection, read again after it finishes.
+		NSPoint dragStart = NSZeroPoint, dragEnd = NSZeroPoint;
 		int result = JT_SCREENSHOT_UI_CANCELLED;
 		if (jt_post_screenshot_shortcut(JT_SCREENSHOT_KEY_REGION) != 0) {
 			result = JT_SCREENSHOT_UI_FAILED;
 		} else {
 			NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:timeout_seconds];
 			BOOL crossVisible = YES;
+			BOOL mouseDown = NO;
 			while ([deadline timeIntervalSinceNow] > 0 &&
 				!CGEventSourceKeyState(kCGEventSourceStateHIDSystemState, kEscapeKey)) {
 				// The system UI writes the selected region to the pasteboard,
@@ -210,11 +214,21 @@ int jt_screenshot_ui_run(double timeout_seconds) {
 					// and the cross must already be gone by then or it ends up
 					// in the image.
 					if (([NSEvent pressedMouseButtons] & 1) != 0) {
+						// Mouse down is the one corner the system keeps, even when a
+						// modifier constrains the drag, so the region can be derived
+						// from it later without asking the system for the rectangle.
+						dragStart = [NSEvent mouseLocation];
+						dragEnd = dragStart;
+						mouseDown = YES;
 						[cross orderOut:nil];
 						crossVisible = NO;
 					} else {
 						jt_center_on_mouse(cross);
 					}
+				} else if (mouseDown && ([NSEvent pressedMouseButtons] & 1) != 0) {
+					// Keep updating until the button is released: the last position
+					// tells us which way the drag went, i.e. which corner was the start.
+					dragEnd = [NSEvent mouseLocation];
 				}
 				jt_pump_events(1.0 / 120.0);
 			}
@@ -222,6 +236,21 @@ int jt_screenshot_ui_run(double timeout_seconds) {
 
 		[cross orderOut:nil];
 		[cross close];
+		if (result == JT_SCREENSHOT_UI_DONE) {
+			// The frozen window stays up while annotating: the annotation window is
+			// placed back on the region, so the frozen screen has to stay behind it.
+			// It also starts swallowing mouse events here, otherwise a click outside
+			// the region would reach the application behind us.
+			if (frozen) [frozen setIgnoresMouseEvents:NO];
+			jt_annotate_context_t context;
+			context.image = image;
+			context.screen = screen;
+			context.drag_start = dragStart;
+			context.drag_end = dragEnd;
+			if (jt_annotate_capture(pb, context) == JT_ANNOTATE_CANCELLED) {
+				result = JT_SCREENSHOT_UI_CANCELLED;
+			}
+		}
 		if (frozen) {
 			[frozen orderOut:nil];
 			[frozen close];
