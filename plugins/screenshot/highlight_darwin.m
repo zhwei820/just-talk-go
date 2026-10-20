@@ -205,7 +205,9 @@ int jt_screenshot_ui_run(double timeout_seconds) {
 				!CGEventSourceKeyState(kCGEventSourceStateHIDSystemState, kEscapeKey)) {
 				// The system UI writes the selected region to the pasteboard,
 				// which is the only observable sign that the capture finished.
-				if ([pb changeCount] != selectionBase) {
+				// It clears the pasteboard first and writes the image a moment
+				// later, so a changed count alone may still mean an empty board.
+				if ([pb changeCount] != selectionBase && [NSImage canInitWithPasteboard:pb]) {
 					result = JT_SCREENSHOT_UI_DONE;
 					break;
 				}
