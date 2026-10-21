@@ -135,15 +135,15 @@ func (p *Plugin) apply(cfg *config.Config) {
 }
 
 func (p *Plugin) Start(ctx context.Context) error {
-	t := time.NewTicker(checkInterval)
+	t := time.NewTimer(0)
 	defer t.Stop()
 	for {
-		p.tick(time.Now())
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-t.C:
 		}
+		t.Reset(p.tick(time.Now()))
 	}
 }
 
@@ -154,25 +154,32 @@ func (p *Plugin) Stop() error {
 	return nil
 }
 
-func (p *Plugin) tick(now time.Time) {
+// NextNudgeIn is how long until idle time reaches the nudge threshold.
+func NextNudgeIn() time.Duration {
+	return max(idleThreshold-idleTime(), 0)
+}
+
+// tick returns the delay until the next check: when the idle threshold will
+// be reached, capped so window and config changes are still noticed.
+func (p *Plugin) tick(now time.Time) time.Duration {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if !p.enabled {
 		p.setAwake(false)
-		return
+		return checkInterval
 	}
 	active := p.win.contains(now)
 	p.setAwake(active)
 	if !active {
 		setTUIStatus(func(s *TUIPresenceStatus) { s.State = "outside" })
-		return
+		return checkInterval
 	}
-	if idleTime() < idleThreshold {
+	if left := NextNudgeIn(); left > 0 {
 		// Keep a reported failure until a nudge proves otherwise.
 		if !p.warnedNudge {
 			setTUIStatus(func(s *TUIPresenceStatus) { s.State = "active" })
 		}
-		return
+		return min(left, checkInterval)
 	}
 	nudge()
 	// A synthetic event that leaves idle time untouched was dropped, which
@@ -183,11 +190,12 @@ func (p *Plugin) tick(now time.Time) {
 			p.warnedNudge = true
 		}
 		setTUIStatus(func(s *TUIPresenceStatus) { s.State = "failed" })
-		return
+		return checkInterval
 	}
 	p.warnedNudge = false
 	setTUIStatus(func(s *TUIPresenceStatus) { s.State, s.LastNudge = "active", now })
 	p.logger.Debug("presence reset idle time")
+	return checkInterval
 }
 
 func (p *Plugin) setAwake(on bool) {

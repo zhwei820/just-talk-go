@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -403,8 +404,12 @@ func renderPresenceStatus() string {
 	if status.Detail != "" {
 		parts = append(parts, vStyle.Render(status.Detail))
 	}
-	if status.State == "active" && !status.LastNudge.IsZero() {
-		parts = append(parts, dStyle.Render("上次保活 "+status.LastNudge.Format("15:04")))
+	if status.State == "active" {
+		left := presence.NextNudgeIn()
+		parts = append(parts, dStyle.Render(fmt.Sprintf("%d 秒后保活", int(math.Ceil(left.Seconds())))))
+		if !status.LastNudge.IsZero() {
+			parts = append(parts, dStyle.Render("上次保活 "+status.LastNudge.Format("15:04")))
+		}
 	}
 	return strings.Join(parts, "  ")
 }
