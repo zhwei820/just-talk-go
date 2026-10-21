@@ -15,11 +15,20 @@ type Config struct {
 	Debug      DebugConfig      `toml:"debug"`
 	Overlay    OverlayConfig    `toml:"overlay"`
 	Screenshot ScreenshotConfig `toml:"screenshot"`
+	Presence   PresenceConfig   `toml:"presence"`
 }
 
 type ScreenshotConfig struct {
 	Enabled bool   `toml:"enabled"`
 	Hotkey  string `toml:"hotkey"`
+}
+
+// PresenceConfig keeps the system from going idle between Start and End
+// (local "HH:MM"; End before Start spans midnight).
+type PresenceConfig struct {
+	Enabled bool   `toml:"enabled"`
+	Start   string `toml:"start"`
+	End     string `toml:"end"`
 }
 
 type DebugConfig struct {
@@ -68,6 +77,7 @@ func Default() *Config {
 			Enabled: true, Position: "bottom-center", IdleVisible: false, Scale: 1.0,
 		},
 		Screenshot: ScreenshotConfig{Enabled: true, Hotkey: "Ctrl+Cmd+A"},
+		Presence:   PresenceConfig{Enabled: false, Start: "09:00", End: "20:00"},
 	}
 }
 

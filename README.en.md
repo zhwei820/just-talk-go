@@ -21,6 +21,7 @@ It is built for people who want to type less and speak more while coding, chatti
 - ASR hotwords for project names, people names, English terms, and domain-specific vocabulary.
 - Usage statistics for total sessions, total recognized characters, average speed, and recent speed.
 - Region screenshot: `Ctrl+Command+A` by default, select with the mouse and the image goes straight to the clipboard.
+- Stay active (macOS): keeps the system from going idle during set hours, so apps like Slack do not show you as away.
 
 ## Platform Status
 
@@ -152,6 +153,18 @@ hotkey = "Ctrl+Cmd+A"
 
 - macOS triggers the system shortcut `⌃⇧⌘4` (copy picture of selected area), so the terminal does not need Screen Recording permission. When the hotkey is pressed it first grabs the main display with `⌃⇧⌘3` and covers the screen with that still image, so you select from a frozen screen (you will hear the shutter sound twice); secondary displays are not frozen. Freezing or capturing stops working if these shortcuts are changed or disabled under System Settings > Keyboard > Keyboard Shortcuts > Screenshots. A red crosshair is drawn over the cursor until you press the mouse; Esc or 60 seconds without finishing counts as cancelled and the previous clipboard is restored. The default hotkey matches the macOS WeChat screenshot shortcut and both will fire, so change one of them. When the selection finishes you annotate in place: everything outside the region is dimmed, the cursor becomes a crosshair inside it, and dragging draws red rectangles (5 px wide, several allowed) right where they appear on screen. `Cmd+Z` or Backspace undoes the last one, `Enter` or double click copies, `Esc` or right click cancels; pressing `Enter` without drawing anything copies the original image. Clicks outside the region do not reach the application behind it while annotating.
 - Linux X11 needs `maim`; Wayland needs `slurp` and `grim` and only works on wlroots compositors such as Sway / Hyprland. GNOME / KDE Wayland are not supported yet.
+
+Stay active (macOS only, off by default):
+
+```toml
+[presence]
+enabled = true
+start = "09:00"
+end = "20:00"   # earlier than start means the window spans midnight
+```
+
+- Within the window, after 4 minutes without keyboard or mouse input it posts an in-place mouse event (the cursor does not move) and keeps the display awake; outside the window it does nothing.
+- Uses the Accessibility permission the terminal already has; does not work with the lid closed or the screen locked.
 
 ## Changelog
 

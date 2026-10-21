@@ -17,6 +17,7 @@ import (
 	"github.com/c/just-talk-go/internal/tui"
 	"github.com/c/just-talk-go/plugins"
 	"github.com/c/just-talk-go/plugins/overlay"
+	"github.com/c/just-talk-go/plugins/presence"
 	"github.com/c/just-talk-go/plugins/screenshot"
 	"github.com/c/just-talk-go/plugins/voice"
 	tea "github.com/charmbracelet/bubbletea"
@@ -120,6 +121,7 @@ func main() {
 	eng.LoadPlugin(voice.NewVoicePlugin())
 	eng.LoadPlugin(overlay.NewOverlayPlugin())
 	eng.LoadPlugin(screenshot.NewScreenshotPlugin())
+	eng.LoadPlugin(presence.NewPresencePlugin())
 	if p := config.FindConfig(); p != "" {
 		eng.WatchConfig(p)
 	}
