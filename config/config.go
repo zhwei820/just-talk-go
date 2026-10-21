@@ -103,7 +103,7 @@ func Load(path string) (*Config, error) {
 }
 
 func FindConfig() string {
-	candidates := []string{"./config.toml"}
+	candidates := []string{"~/just-talk-go/config/config.toml"}
 	if home, err := os.UserHomeDir(); err == nil {
 		candidates = append(candidates, filepath.Join(home, ".config", "just-talk", "config.toml"))
 	}

@@ -55,6 +55,30 @@ func parseWindow(pc config.PresenceConfig) (window, error) {
 	return window{start, end}, nil
 }
 
+// TUIPresenceStatus is what the TUI shows; an empty State hides the line.
+type TUIPresenceStatus struct {
+	State     string // "active", "outside", "failed", "invalid"
+	Detail    string
+	LastNudge time.Time
+}
+
+var (
+	tuiStatusMu sync.Mutex
+	tuiStatus   TUIPresenceStatus
+)
+
+func TUIStatus() TUIPresenceStatus {
+	tuiStatusMu.Lock()
+	defer tuiStatusMu.Unlock()
+	return tuiStatus
+}
+
+func setTUIStatus(update func(*TUIPresenceStatus)) {
+	tuiStatusMu.Lock()
+	defer tuiStatusMu.Unlock()
+	update(&tuiStatus)
+}
+
 type Plugin struct {
 	logger *slog.Logger
 
@@ -87,6 +111,7 @@ func (p *Plugin) apply(cfg *config.Config) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.enabled = false
+	setTUIStatus(func(s *TUIPresenceStatus) { *s = TUIPresenceStatus{} })
 	if !pc.Enabled {
 		return
 	}
@@ -97,10 +122,16 @@ func (p *Plugin) apply(cfg *config.Config) {
 	w, err := parseWindow(pc)
 	if err != nil {
 		p.logger.Warn("presence disabled", "error", err)
+		setTUIStatus(func(s *TUIPresenceStatus) { s.State, s.Detail = "invalid", err.Error() })
 		return
 	}
 	p.enabled, p.win = true, w
 	p.logger.Info("presence enabled", "start", pc.Start, "end", pc.End)
+	state := "outside"
+	if w.contains(time.Now()) {
+		state = "active"
+	}
+	setTUIStatus(func(s *TUIPresenceStatus) { s.State, s.Detail = state, pc.Start+"–"+pc.End })
 }
 
 func (p *Plugin) Start(ctx context.Context) error {
@@ -126,9 +157,21 @@ func (p *Plugin) Stop() error {
 func (p *Plugin) tick(now time.Time) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	active := p.enabled && p.win.contains(now)
+	if !p.enabled {
+		p.setAwake(false)
+		return
+	}
+	active := p.win.contains(now)
 	p.setAwake(active)
-	if !active || idleTime() < idleThreshold {
+	if !active {
+		setTUIStatus(func(s *TUIPresenceStatus) { s.State = "outside" })
+		return
+	}
+	if idleTime() < idleThreshold {
+		// Keep a reported failure until a nudge proves otherwise.
+		if !p.warnedNudge {
+			setTUIStatus(func(s *TUIPresenceStatus) { s.State = "active" })
+		}
 		return
 	}
 	nudge()
@@ -139,9 +182,11 @@ func (p *Plugin) tick(now time.Time) {
 			p.logger.Warn("presence could not reset idle time; grant Accessibility to the terminal running Just Talk")
 			p.warnedNudge = true
 		}
+		setTUIStatus(func(s *TUIPresenceStatus) { s.State = "failed" })
 		return
 	}
 	p.warnedNudge = false
+	setTUIStatus(func(s *TUIPresenceStatus) { s.State, s.LastNudge = "active", now })
 	p.logger.Debug("presence reset idle time")
 }
 

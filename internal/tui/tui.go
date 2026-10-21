@@ -7,6 +7,7 @@ import (
 
 	"github.com/c/just-talk-go/config"
 	"github.com/c/just-talk-go/hotkey"
+	"github.com/c/just-talk-go/plugins/presence"
 	"github.com/c/just-talk-go/plugins/voice"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -330,6 +331,9 @@ func (m *Model) View() string {
 	}
 	b.WriteString("\n" + lStyle.Render("── 录音状态 ──") + "\n")
 	b.WriteString("  " + m.renderVoiceStatus() + "\n")
+	if line := renderPresenceStatus(); line != "" {
+		b.WriteString("  " + line + "\n")
+	}
 	if m.showLogs {
 		b.WriteString("\n" + lStyle.Render("── 日志 (l 展开) ──") + "\n")
 		maxLogs := 5
@@ -377,6 +381,32 @@ func (m *Model) renderVoiceStats() string {
 		dStyle.Render("平均速度 ") + wStyle.Render(fmt.Sprintf("%.0f", cpm)) + dStyle.Render(" 字/分钟"),
 		last,
 	}, "  |  ")
+}
+
+func renderPresenceStatus() string {
+	status := presence.TUIStatus()
+	var label string
+	style := dStyle
+	switch status.State {
+	case "active":
+		label, style = "生效中", aStyle
+	case "outside":
+		label = "时段外"
+	case "failed":
+		label, style = "失败（终端缺辅助功能权限）", eStyle
+	case "invalid":
+		label, style = "配置错误", eStyle
+	default:
+		return ""
+	}
+	parts := []string{"保持在线：" + style.Render(label)}
+	if status.Detail != "" {
+		parts = append(parts, vStyle.Render(status.Detail))
+	}
+	if status.State == "active" && !status.LastNudge.IsZero() {
+		parts = append(parts, dStyle.Render("上次保活 "+status.LastNudge.Format("15:04")))
+	}
+	return strings.Join(parts, "  ")
 }
 
 func (m *Model) renderVoiceStatus() string {

@@ -123,6 +123,7 @@ func main() {
 	eng.LoadPlugin(screenshot.NewScreenshotPlugin())
 	eng.LoadPlugin(presence.NewPresencePlugin())
 	if p := config.FindConfig(); p != "" {
+		fmt.Println("p",p)
 		eng.WatchConfig(p)
 	}
 
