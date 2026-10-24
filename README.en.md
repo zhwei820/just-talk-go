@@ -163,7 +163,7 @@ start = "09:00"
 end = "20:00"   # earlier than start means the window spans midnight
 ```
 
-- Within the window, after 4 minutes without keyboard or mouse input it posts an in-place mouse event (the cursor does not move) and keeps the display awake; outside the window it does nothing.
+- Weekdays only (Monday to Friday); a window spanning midnight counts as the day it starts. Within the window, after 4 minutes without keyboard or mouse input it posts an in-place mouse event (the cursor does not move) and keeps the display awake; outside the window it does nothing.
 - Uses the Accessibility permission the terminal already has; does not work with the lid closed or the screen locked.
 
 ## Changelog

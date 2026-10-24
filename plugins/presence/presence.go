@@ -23,13 +23,23 @@ type window struct {
 	start, end int // minutes since local midnight
 }
 
-// contains treats end before start as a window spanning midnight.
+// contains treats end before start as a window spanning midnight. Only
+// windows starting on a weekday count, so Friday night's window still runs
+// into Saturday morning while Sunday night's into Monday does not.
 func (w window) contains(t time.Time) bool {
 	m := t.Hour()*60 + t.Minute()
+	startDay := t
+	var in bool
 	if w.start <= w.end {
-		return m >= w.start && m < w.end
+		in = m >= w.start && m < w.end
+	} else {
+		in = m >= w.start || m < w.end
+		if m < w.end {
+			startDay = t.AddDate(0, 0, -1)
+		}
 	}
-	return m >= w.start || m < w.end
+	wd := startDay.Weekday()
+	return in && wd != time.Saturday && wd != time.Sunday
 }
 
 func parseClock(s string) (int, error) {
