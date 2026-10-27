@@ -166,6 +166,20 @@ end = "20:00"   # earlier than start means the window spans midnight
 - Weekdays only (Monday to Friday); a window spanning midnight counts as the day it starts. Within the window, after 4 minutes without keyboard or mouse input it posts an in-place mouse event (the cursor does not move) and keeps the display awake; outside the window it does nothing.
 - Uses the Accessibility permission the terminal already has; does not work with the lid closed or the screen locked.
 
+Claude Code as a DeepSeek / OpenAI API (on by default; `enabled = false` turns it off):
+
+```toml
+[ccds]
+enabled = true
+port = 8888          # other processes listening on this port are killed at startup
+api_key = ""         # when set, requests need Authorization: Bearer <key>
+model = "sonnet"     # Claude model behind deepseek-chat
+reasoner = "opus"    # Claude model behind deepseek-reasoner
+```
+
+- Serves `/chat/completions` (streaming included), `/responses` (non-streaming only) and `/models` on `http://127.0.0.1:8888`; each request runs the local `claude -p` once with all tools disabled.
+- `/vault` stores only the browser extension's encrypted vault, under `~/.cc-ds` (`vault_dir`); the extension's token is in `~/.cc-ds/vault-token`.
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).

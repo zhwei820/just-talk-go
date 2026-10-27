@@ -16,6 +16,7 @@ type Config struct {
 	Overlay    OverlayConfig    `toml:"overlay"`
 	Screenshot ScreenshotConfig `toml:"screenshot"`
 	Presence   PresenceConfig   `toml:"presence"`
+	CCDS       CCDSConfig       `toml:"ccds"`
 }
 
 type ScreenshotConfig struct {
@@ -29,6 +30,20 @@ type PresenceConfig struct {
 	Enabled bool   `toml:"enabled"`
 	Start   string `toml:"start"`
 	End     string `toml:"end"`
+}
+
+// CCDSConfig serves a DeepSeek / OpenAI compatible Chat Completions API
+// backed by the local Claude Code CLI (`claude -p`).
+type CCDSConfig struct {
+	Enabled  bool   `toml:"enabled"`
+	Host     string `toml:"host"`
+	Port     int    `toml:"port"`
+	APIKey   string `toml:"api_key"`  // when set, requests need `Authorization: Bearer <key>`
+	Model    string `toml:"model"`    // Claude model behind deepseek-chat
+	Reasoner string `toml:"reasoner"` // Claude model behind deepseek-reasoner
+	Claude   string `toml:"claude"`   // claude executable
+	Timeout  int    `toml:"timeout"`  // seconds per request
+	VaultDir string `toml:"vault_dir"`
 }
 
 type DebugConfig struct {
@@ -78,6 +93,10 @@ func Default() *Config {
 		},
 		Screenshot: ScreenshotConfig{Enabled: true, Hotkey: "Ctrl+Cmd+A"},
 		Presence:   PresenceConfig{Enabled: false, Start: "09:00", End: "20:00"},
+		CCDS: CCDSConfig{
+			Enabled: true, Host: "127.0.0.1", Port: 8888, Model: "sonnet", Reasoner: "opus",
+			Claude: "claude", Timeout: 600, VaultDir: "~/.cc-ds",
+		},
 	}
 }
 

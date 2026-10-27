@@ -16,6 +16,7 @@ import (
 	"github.com/c/just-talk-go/internal/doctor"
 	"github.com/c/just-talk-go/internal/tui"
 	"github.com/c/just-talk-go/plugins"
+	"github.com/c/just-talk-go/plugins/ccds"
 	"github.com/c/just-talk-go/plugins/overlay"
 	"github.com/c/just-talk-go/plugins/presence"
 	"github.com/c/just-talk-go/plugins/screenshot"
@@ -122,6 +123,7 @@ func main() {
 	eng.LoadPlugin(overlay.NewOverlayPlugin())
 	eng.LoadPlugin(screenshot.NewScreenshotPlugin())
 	eng.LoadPlugin(presence.NewPresencePlugin())
+	eng.LoadPlugin(ccds.NewCCDSPlugin())
 	if p := config.FindConfig(); p != "" {
 		fmt.Println("p",p)
 		eng.WatchConfig(p)

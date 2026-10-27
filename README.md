@@ -166,6 +166,20 @@ end = "20:00"   # 早于 start 表示跨午夜
 - 仅工作日（周一至周五）生效，跨午夜的时段按开始那天算。时段内键鼠空闲超过 4 分钟时发送一次原地鼠标事件（光标不动），并阻止显示器休眠；时段外不做任何事。
 - 依赖终端已有的「辅助功能」权限；合盖或锁屏后无效。
 
+Claude Code 转 DeepSeek / OpenAI 接口（默认开启，`enabled = false` 关闭）：
+
+```toml
+[ccds]
+enabled = true
+port = 8888          # 启动时会结束占用该端口的其他进程
+api_key = ""         # 非空时要求 Authorization: Bearer <key>
+model = "sonnet"     # deepseek-chat 对应的 Claude 模型
+reasoner = "opus"    # deepseek-reasoner 对应的 Claude 模型
+```
+
+- 在 `http://127.0.0.1:8888` 提供 `/chat/completions`（含流式）、`/responses`（仅非流式）和 `/models`，每个请求调用一次本机 `claude -p`，不开放任何工具。
+- `/vault` 只给浏览器扩展存加密后的密码库，数据在 `~/.cc-ds`（`vault_dir`），扩展所需的 token 在 `~/.cc-ds/vault-token`。
+
 ## 更新日志
 
 见 [CHANGELOG.md](CHANGELOG.md)。
