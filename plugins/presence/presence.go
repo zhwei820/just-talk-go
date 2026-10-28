@@ -17,6 +17,7 @@ const (
 	checkInterval = time.Minute
 	// Slack switches to away after about 10 minutes without input.
 	idleThreshold = 4 * time.Minute
+	nudgeSettle   = 2 * time.Second
 )
 
 type window struct {
@@ -191,10 +192,9 @@ func (p *Plugin) tick(now time.Time) time.Duration {
 		}
 		return min(left, checkInterval)
 	}
-	nudge()
 	// A synthetic event that leaves idle time untouched was dropped, which
 	// means the launching terminal lacks the Accessibility permission.
-	if idleTime() >= idleThreshold {
+	if !nudgeAndWait() {
 		if !p.warnedNudge {
 			p.logger.Warn("presence could not reset idle time; grant Accessibility to the terminal running Just Talk")
 			p.warnedNudge = true
@@ -206,6 +206,22 @@ func (p *Plugin) tick(now time.Time) time.Duration {
 	setTUIStatus(func(s *TUIPresenceStatus) { s.State, s.LastNudge = "active", now })
 	p.logger.Debug("presence reset idle time")
 	return checkInterval
+}
+
+// nudgeAndWait reports whether the nudge reset idle time. macOS reflects a
+// posted event in idle time only a few hundred milliseconds later.
+func nudgeAndWait() bool {
+	nudge()
+	deadline := time.Now().Add(nudgeSettle)
+	for {
+		if idleTime() < idleThreshold {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 }
 
 func (p *Plugin) setAwake(on bool) {
