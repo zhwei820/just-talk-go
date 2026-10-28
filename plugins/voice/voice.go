@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode"
 
@@ -772,7 +773,7 @@ func (p *VoicePlugin) finishRecordingSession(session *recordingSession) {
 				audioDuration = time.Since(session.startedAt)
 			}
 			recordTUIStats(text, audioDuration)
-			p.dispatchTextOutput(text, session.autoSubmit)
+			p.dispatchTextOutput(session.sessionID, text, session.autoSubmit)
 		}
 		p.logger.Debug("finish session: closing ASR client")
 		closeDone := make(chan error, 1)
@@ -792,10 +793,21 @@ func (p *VoicePlugin) finishRecordingSession(session *recordingSession) {
 	p.logger.Debug("finish session: done")
 }
 
-func (p *VoicePlugin) dispatchTextOutput(text string, autoSubmit bool) {
+// Overlapping pastes race on snapshot/restore of the shared pasteboard, so
+// in-flight count is logged with every paste.
+var pastesInFlight atomic.Int32
+
+func (p *VoicePlugin) dispatchTextOutput(sessionID uint64, text string, autoSubmit bool) {
 	go func() {
 		if autoSubmit {
-			if err := autotype.Paste(text, p.logger); err != nil {
+			inflight := pastesInFlight.Add(1)
+			defer pastesInFlight.Add(-1)
+			logger := p.logger.With("session", sessionID)
+			if inflight > 1 {
+				logger.Warn("autotype: overlapping paste in flight", "in_flight", inflight)
+			}
+			if err := autotype.Paste(text, logger); err != nil {
+				logger.Warn("autotype failed", "error", err)
 				pout("❌ 上屏失败: %v", err)
 			} else {
 				pout("📋 已复制到剪贴板")

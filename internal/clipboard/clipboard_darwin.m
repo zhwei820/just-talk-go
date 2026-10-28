@@ -77,3 +77,9 @@ int jt_clipboard_restore(void *handle) {
 		return ok ? 0 : -1;
 	}
 }
+
+long jt_clipboard_change_count(void) {
+	@autoreleasepool {
+		return (long)[[NSPasteboard generalPasteboard] changeCount];
+	}
+}

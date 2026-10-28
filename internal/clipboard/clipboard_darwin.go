@@ -57,3 +57,9 @@ func darwinRestore(s *Snapshot) error {
 	}
 	return nil
 }
+
+// ChangeCount returns NSPasteboard's changeCount; it increments on every
+// write by any process, so comparing two reads detects foreign writes.
+func ChangeCount() int64 {
+	return int64(C.jt_clipboard_change_count())
+}
