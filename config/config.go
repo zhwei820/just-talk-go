@@ -68,7 +68,8 @@ type VoiceConfig struct {
 	Language    string `toml:"language"`
 	AutoSubmit  bool   `toml:"auto_submit"`
 
-	// Provider is "azure" (default), "aliyun", "tencent" or "volcengine".
+	// Provider is "azure" (default), "aliyun", "tencent", "volcengine" or
+	// "sherpa" (local SenseVoice model).
 	Provider    string `toml:"provider"`
 	AzureKey    string `toml:"azure_key"`
 	AzureRegion string `toml:"azure_region"`
@@ -81,6 +82,8 @@ type VoiceConfig struct {
 	TencentSecretID  string `toml:"tencent_secret_id"`
 	TencentSecretKey string `toml:"tencent_secret_key"`
 
+	SherpaModelDir string `toml:"sherpa_model_dir"`
+
 	AppKey    string `toml:"app_key"`    // v1
 	AccessKey string `toml:"access_key"` // v1
 
@@ -88,6 +91,21 @@ type VoiceConfig struct {
 
 	ResourceID string   `toml:"resource_id"`
 	Hotwords   []string `toml:"hotwords"`
+}
+
+// SherpaModelPath returns the SenseVoice model directory, defaulting to
+// ~/.local/share/just-talk/models/sense-voice.
+func (v VoiceConfig) SherpaModelPath() string {
+	if v.SherpaModelDir != "" {
+		if strings.HasPrefix(v.SherpaModelDir, "~/") {
+			if home, err := os.UserHomeDir(); err == nil {
+				return filepath.Join(home, v.SherpaModelDir[2:])
+			}
+		}
+		return v.SherpaModelDir
+	}
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".local", "share", "just-talk", "models", "sense-voice")
 }
 
 func Default() *Config {

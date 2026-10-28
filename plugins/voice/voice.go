@@ -346,6 +346,13 @@ func (p *VoicePlugin) registerFromConfig(cfg *config.Config) error {
 	oldMode := p.mode
 	sameRegistration := oldCombo == combo && oldMode == mode
 	p.cfg = cfg
+	if vc.Provider == "sherpa" {
+		go func() {
+			if err := PreloadSherpa(vc.SherpaModelPath(), p.logger); err != nil {
+				p.logger.Warn("sherpa preload failed", "error", err)
+			}
+		}()
+	}
 	p.combo = combo
 	p.mode = mode
 	p.autoSubmit = vc.AutoSubmit
@@ -519,7 +526,8 @@ func (p *VoicePlugin) startRecording() {
 		Provider: vc.Provider, AzureKey: vc.AzureKey, AzureRegion: vc.AzureRegion,
 		AliyunAppKey: vc.AliyunAppKey, AliyunAccessKeyID: vc.AliyunAccessKeyID, AliyunAccessKeySecret: vc.AliyunAccessKeySecret,
 		TencentAppID: vc.TencentAppID, TencentSecretID: vc.TencentSecretID, TencentSecretKey: vc.TencentSecretKey,
-		AppKey: vc.AppKey, AccessKey: vc.AccessKey, ResourceID: vc.ResourceID,
+		SherpaModelDir: vc.SherpaModelPath(),
+		AppKey:         vc.AppKey, AccessKey: vc.AccessKey, ResourceID: vc.ResourceID,
 		Language: vc.Language, Hotwords: vc.Hotwords,
 	}
 	if asrCfg.ResourceID == "" {

@@ -184,6 +184,16 @@ func asrConfigCheck(cfg *config.Config) Check {
 		require("tencent_secret_id", cfg.Voice.TencentSecretID)
 		require("tencent_secret_key", cfg.Voice.TencentSecretKey)
 		detail = "provider=tencent"
+	case "sherpa":
+		dir := cfg.Voice.SherpaModelPath()
+		if _, err := os.Stat(filepath.Join(dir, "tokens.txt")); err != nil {
+			return Check{
+				Name: "ASR 配置", OK: false, Severity: Warning,
+				Detail: "本地模型不存在: " + dir,
+				Fix:    "按 README「本地识别」一节下载 SenseVoice 模型到该目录。",
+			}
+		}
+		detail = "provider=sherpa model=" + dir
 	case "volcengine":
 		require("app_key", cfg.Voice.AppKey)
 		require("access_key", cfg.Voice.AccessKey)

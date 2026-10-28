@@ -26,6 +26,8 @@ type ASRConfig struct {
 	TencentSecretID  string
 	TencentSecretKey string
 
+	SherpaModelDir string
+
 	AppKey     string
 	AccessKey  string
 	ResourceID string
@@ -52,6 +54,8 @@ func newASRStream(cfg ASRConfig, logger *slog.Logger) asrStream {
 		return NewAliyunASRClient(cfg, logger)
 	case "tencent":
 		return NewTencentASRClient(cfg, logger)
+	case "sherpa":
+		return NewSherpaASRClient(cfg, logger)
 	}
 	return NewAzureASRClient(cfg, logger)
 }

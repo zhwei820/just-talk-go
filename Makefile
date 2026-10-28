@@ -1,4 +1,4 @@
-.PHONY: help build install test clean run deps
+.PHONY: help build install test clean run deps tidy
 .DEFAULT_GOAL := help
 
 APP_NAME := just-talk
@@ -26,3 +26,7 @@ clean: ## Remove build output
 deps: ## Tidy and download dependencies
 	go mod tidy
 	go mod download
+
+tidy: ## Tidy and vendor dependencies
+	go mod tidy
+	go mod vendor

@@ -70,12 +70,12 @@ type Model struct {
 func New(cfg *config.Config) *Model {
 	vc := cfg.Voice
 	ti := func(v string) textinput.Model { t := textinput.New(); t.SetValue(v); t.Cursor.Blink = false; return t }
-	providers := []string{"azure", "aliyun", "tencent", "volcengine"}
+	providers := []string{"azure", "aliyun", "tencent", "volcengine", "sherpa"}
 	fs := []field{
 		{label: "语音输入", key: "enabled", help: "关闭后不注册热键", fType: fToggle, boolVal: vc.Enabled},
 		{label: "热键", key: "push_to_talk", help: "例: Alt+Super / F9 / Ctrl+Alt+Tab；不支持字母、数字、标点、空格等普通字符键", fType: fString, input: ti(vc.PushToTalk)},
 		{label: "模式", key: "mode", help: "toggle 切换 / hold 按住", fType: fSelect, opts: []string{"toggle", "hold"}, optIdx: idxOf([]string{"toggle", "hold"}, vc.Mode)},
-		{label: "ASR 引擎", key: "provider", help: "azure 微软 / aliyun 阿里云 / tencent 腾讯云 / volcengine 火山", fType: fSelect, opts: providers, optIdx: idxOf(providers, vc.Provider)},
+		{label: "ASR 引擎", key: "provider", help: "azure 微软 / aliyun 阿里云 / tencent 腾讯云 / volcengine 火山 / sherpa 本地", fType: fSelect, opts: providers, optIdx: idxOf(providers, vc.Provider)},
 		{label: "Azure Key", key: "azure_key", help: "Azure 语音服务密钥", fType: fString, input: ti(vc.AzureKey)},
 		{label: "Azure 区域", key: "azure_region", help: "例: eastasia / southeastasia / eastus", fType: fString, input: ti(vc.AzureRegion)},
 		{label: "阿里云 Appkey", key: "aliyun_appkey", help: "智能语音交互项目 Appkey", fType: fString, input: ti(vc.AliyunAppKey)},
@@ -84,6 +84,7 @@ func New(cfg *config.Config) *Model {
 		{label: "腾讯云 AppID", key: "tencent_app_id", help: "账号 AppID", fType: fString, input: ti(vc.TencentAppID)},
 		{label: "腾讯云 SecretId", key: "tencent_secret_id", help: "API 密钥 SecretId", fType: fString, input: ti(vc.TencentSecretID)},
 		{label: "腾讯云 SecretKey", key: "tencent_secret_key", help: "API 密钥 SecretKey", fType: fString, input: ti(vc.TencentSecretKey)},
+		{label: "本地模型目录", key: "sherpa_model_dir", help: "sherpa 用，留空为 ~/.local/share/just-talk/models/sense-voice", fType: fString, input: ti(vc.SherpaModelDir)},
 		{label: "App Key", key: "app_key", help: "火山 App ID", fType: fString, input: ti(vc.AppKey)},
 		{label: "Access Key", key: "access_key", help: "火山 Access Token", fType: fString, input: ti(vc.AccessKey)},
 		{label: "自动上屏", key: "auto_submit", help: "识别后自动粘贴", fType: fToggle, boolVal: vc.AutoSubmit},
@@ -249,6 +250,8 @@ func (m *Model) save() {
 			vc.TencentSecretID = f.input.Value()
 		case "tencent_secret_key":
 			vc.TencentSecretKey = f.input.Value()
+		case "sherpa_model_dir":
+			vc.SherpaModelDir = f.input.Value()
 		case "app_key":
 			vc.AppKey = f.input.Value()
 		case "access_key":
