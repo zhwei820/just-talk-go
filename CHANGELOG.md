@@ -9,7 +9,7 @@ All notable project changes are tracked here.
 - Added region screenshot: press `Ctrl+Cmd+A` (configurable under `[screenshot]`), select an area with the mouse, and the image is copied to the clipboard. On macOS the screen is frozen at the moment the hotkey is pressed, so the selection is cut from that still image.
 - Added rectangle annotation to the macOS screenshot flow: after selecting an area the screen stays frozen and the annotation window is placed back onto that region, so rectangles are drawn where they appear on screen. Dragging draws red rectangles (5 px wide, several allowed), `Cmd+Z` or Backspace undoes the last one, `Enter` or double click copies, and `Esc` or right click cancels. The rectangles are burned into the image before it is written to the clipboard.
 - Added local offline ASR (`provider = "sherpa"`) using sherpa-onnx with a SenseVoice model: free, no network, punctuation included; recognition runs once after the hotkey is released.
-- Added Alibaba Cloud (`provider = "aliyun"`) and Tencent Cloud (`provider = "tencent"`) streaming ASR providers.
+- Added Alibaba Cloud (`provider = "aliyun"`) streaming ASR provider.
 - When Azure Speech closes the connection (for example `Quota exceeded`), the reason is now shown as an ASR error instead of the recording ending silently with no output.
 - Switched the default ASR engine to Microsoft Azure Speech (`provider = "azure"`, `azure_key`, `azure_region`); Volcengine remains available via `provider = "volcengine"`.
 - Restricted voice hotkeys to non-text global shortcut keys, rejecting letters, digits, punctuation, Space, and similar text-producing keys.

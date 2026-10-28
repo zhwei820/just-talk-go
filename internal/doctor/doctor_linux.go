@@ -179,11 +179,6 @@ func asrConfigCheck(cfg *config.Config) Check {
 		require("aliyun_access_key_id", cfg.Voice.AliyunAccessKeyID)
 		require("aliyun_access_key_secret", cfg.Voice.AliyunAccessKeySecret)
 		detail = "provider=aliyun"
-	case "tencent":
-		require("tencent_app_id", cfg.Voice.TencentAppID)
-		require("tencent_secret_id", cfg.Voice.TencentSecretID)
-		require("tencent_secret_key", cfg.Voice.TencentSecretKey)
-		detail = "provider=tencent"
 	case "sherpa":
 		dir := cfg.Voice.SherpaModelPath()
 		if _, err := os.Stat(filepath.Join(dir, "tokens.txt")); err != nil {

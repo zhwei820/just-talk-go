@@ -68,7 +68,7 @@ type VoiceConfig struct {
 	Language    string `toml:"language"`
 	AutoSubmit  bool   `toml:"auto_submit"`
 
-	// Provider is "azure" (default), "aliyun", "tencent", "volcengine" or
+	// Provider is "azure" (default), "aliyun", "volcengine" or
 	// "sherpa" (local SenseVoice model).
 	Provider    string `toml:"provider"`
 	AzureKey    string `toml:"azure_key"`
@@ -77,10 +77,6 @@ type VoiceConfig struct {
 	AliyunAppKey          string `toml:"aliyun_appkey"`
 	AliyunAccessKeyID     string `toml:"aliyun_access_key_id"`
 	AliyunAccessKeySecret string `toml:"aliyun_access_key_secret"`
-
-	TencentAppID     string `toml:"tencent_app_id"`
-	TencentSecretID  string `toml:"tencent_secret_id"`
-	TencentSecretKey string `toml:"tencent_secret_key"`
 
 	SherpaModelDir string `toml:"sherpa_model_dir"`
 
