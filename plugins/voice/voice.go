@@ -606,6 +606,7 @@ func (p *VoicePlugin) connectASR(ctx context.Context, cancel context.CancelFunc,
 		for result := range client.Results() {
 			if result.Error != nil {
 				pout("❌ ASR 错误: %v", result.Error)
+				p.publishError("ASR 错误: "+shortError(result.Error), sessionID)
 				continue
 			}
 			if result.IsFinal {

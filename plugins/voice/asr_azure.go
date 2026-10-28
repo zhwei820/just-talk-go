@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -195,6 +196,14 @@ func (c *AzureASRClient) ReceiveLoop(ctx context.Context) {
 	for {
 		typ, data, err := c.conn.Read(ctx)
 		if err != nil {
+			// The service rejects over-quota sessions with a close frame right
+			// after the handshake; without surfacing it the session ends silently.
+			var ce websocket.CloseError
+			if errors.As(err, &ce) && ce.Code != websocket.StatusNormalClosure {
+				reason, _, _ := strings.Cut(ce.Reason, " Cid:")
+				c.logger.Warn("azure closed connection", "code", ce.Code, "reason", ce.Reason)
+				c.resultCh <- ASRResult{Error: fmt.Errorf("Azure 断开连接: %s", strings.TrimSpace(reason))}
+			}
 			return
 		}
 		if typ == websocket.MessageText {
