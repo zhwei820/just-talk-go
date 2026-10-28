@@ -14,7 +14,7 @@ It is built for people who want to type less and speak more while coding, chatti
 
 - Global hotkey recording with `toggle` and `hold` modes.
 - Voice hotkeys are limited to keys suitable for global shortcuts: modifiers, function keys, Tab, CapsLock, arrow/navigation keys, and similar non-text keys. Letters, digits, punctuation, Space, and other text-producing keys are rejected.
-- Streaming ASR: Microsoft Azure Speech by default, with Alibaba Cloud Intelligent Speech Interaction, Tencent Cloud real-time ASR, or Doubao (Volcengine) as alternatives.
+- Streaming ASR: Microsoft Azure Speech by default, with Alibaba Cloud Intelligent Speech Interaction, Tencent Cloud real-time ASR, Doubao (Volcengine), or local offline recognition (sherpa-onnx + SenseVoice) as alternatives.
 - Clipboard copy and automatic text submission.
 - Always-on-top recording status overlay for Wayland, X11, and macOS.
 - TUI configuration for hotkeys, mode, auto-submit, stop delay, hotwords, and related settings.
@@ -146,6 +146,21 @@ provider = "tencent"
 tencent_app_id = "<AppID>"
 tencent_secret_id = "<SecretId>"
 tencent_secret_key = "<SecretKey>"
+```
+
+Local recognition (sherpa-onnx + SenseVoice: free and offline; the whole clip is recognized after the hotkey is released, so there are no partial results, and `hotwords` does not apply). Download the model first (about 240 MB; in mainland China you can replace `huggingface.co` with `hf-mirror.com`):
+
+```bash
+d=~/.local/share/just-talk/models/sense-voice && mkdir -p $d
+for f in model.int8.onnx tokens.txt; do
+  curl -fL -o $d/$f https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main/$f
+done
+```
+
+```toml
+[voice]
+provider = "sherpa"
+# sherpa_model_dir = "~/.local/share/just-talk/models/sense-voice"
 ```
 
 Hotword example:

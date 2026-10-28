@@ -27,6 +27,15 @@ deps: ## Tidy and download dependencies
 	go mod tidy
 	go mod download
 
+SHERPA_LIB_MODULES := github.com/k2-fsa/sherpa-onnx-go-macos github.com/k2-fsa/sherpa-onnx-go-linux
+
+# go mod vendor skips sherpa-onnx's prebuilt lib/ (it holds no Go files), but
+# cgo links against it, so it is copied in from the module cache.
 tidy: ## Tidy and vendor dependencies
 	go mod tidy
 	go mod vendor
+	for m in $(SHERPA_LIB_MODULES); do \
+		go mod download $$m && \
+		cp -R "$$(go list -mod=mod -m -f '{{.Dir}}' $$m)/lib" vendor/$$m/ && \
+		chmod -R u+w vendor/$$m/lib || exit 1; \
+	done

@@ -14,7 +14,7 @@ Just Talk 是一个面向桌面环境的语音输入工具。它通过全局快�
 
 - 全局快捷键录音，支持 `toggle` 和 `hold` 两种模式。
 - 语音热键限定为适合作为全局快捷键的按键：支持纯修饰键、功能键、Tab、CapsLock、方向键和导航键等；不支持字母、数字、标点、空格等普通字符键。
-- 流式 ASR：默认微软 Azure 语音服务，可切换为阿里云智能语音交互、腾讯云实时语音识别或豆包大模型（火山引擎）。
+- 流式 ASR：默认微软 Azure 语音服务，可切换为阿里云智能语音交互、腾讯云实时语音识别、豆包大模型（火山引擎），或本地离线识别（sherpa-onnx + SenseVoice）。
 - 自动复制到剪贴板，支持自动上屏。
 - Wayland / X11 / macOS 顶层录音状态胶囊提示。
 - TUI 配置界面，支持热键、模式、自动上屏、停止延迟、热词等配置。
@@ -146,6 +146,21 @@ provider = "tencent"
 tencent_app_id = "<AppID>"
 tencent_secret_id = "<SecretId>"
 tencent_secret_key = "<SecretKey>"
+```
+
+本地识别（sherpa-onnx + SenseVoice，免费、不联网；松开热键后整段识别，没有中间结果；`hotwords` 不生效）。先下载模型（约 240 MB，国内可把 `huggingface.co` 换成 `hf-mirror.com`）：
+
+```bash
+d=~/.local/share/just-talk/models/sense-voice && mkdir -p $d
+for f in model.int8.onnx tokens.txt; do
+  curl -fL -o $d/$f https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main/$f
+done
+```
+
+```toml
+[voice]
+provider = "sherpa"
+# sherpa_model_dir = "~/.local/share/just-talk/models/sense-voice"
 ```
 
 热词示例：
