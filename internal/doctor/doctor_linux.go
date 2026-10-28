@@ -173,7 +173,18 @@ func asrConfigCheck(cfg *config.Config) Check {
 		}
 	}
 	detail := "provider=azure region=" + cfg.Voice.AzureRegion
-	if cfg.Voice.Provider == "volcengine" {
+	switch cfg.Voice.Provider {
+	case "aliyun":
+		require("aliyun_appkey", cfg.Voice.AliyunAppKey)
+		require("aliyun_access_key_id", cfg.Voice.AliyunAccessKeyID)
+		require("aliyun_access_key_secret", cfg.Voice.AliyunAccessKeySecret)
+		detail = "provider=aliyun"
+	case "tencent":
+		require("tencent_app_id", cfg.Voice.TencentAppID)
+		require("tencent_secret_id", cfg.Voice.TencentSecretID)
+		require("tencent_secret_key", cfg.Voice.TencentSecretKey)
+		detail = "provider=tencent"
+	case "volcengine":
 		require("app_key", cfg.Voice.AppKey)
 		require("access_key", cfg.Voice.AccessKey)
 		resourceID := strings.TrimSpace(cfg.Voice.ResourceID)
@@ -181,7 +192,7 @@ func asrConfigCheck(cfg *config.Config) Check {
 			resourceID = "volc.bigasr.sauc.duration"
 		}
 		detail = "provider=volcengine resource_id=" + resourceID
-	} else {
+	default:
 		require("azure_key", cfg.Voice.AzureKey)
 		require("azure_region", cfg.Voice.AzureRegion)
 	}

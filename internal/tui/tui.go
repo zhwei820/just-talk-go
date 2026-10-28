@@ -70,13 +70,20 @@ type Model struct {
 func New(cfg *config.Config) *Model {
 	vc := cfg.Voice
 	ti := func(v string) textinput.Model { t := textinput.New(); t.SetValue(v); t.Cursor.Blink = false; return t }
+	providers := []string{"azure", "aliyun", "tencent", "volcengine"}
 	fs := []field{
 		{label: "语音输入", key: "enabled", help: "关闭后不注册热键", fType: fToggle, boolVal: vc.Enabled},
 		{label: "热键", key: "push_to_talk", help: "例: Alt+Super / F9 / Ctrl+Alt+Tab；不支持字母、数字、标点、空格等普通字符键", fType: fString, input: ti(vc.PushToTalk)},
 		{label: "模式", key: "mode", help: "toggle 切换 / hold 按住", fType: fSelect, opts: []string{"toggle", "hold"}, optIdx: idxOf([]string{"toggle", "hold"}, vc.Mode)},
-		{label: "ASR 引擎", key: "provider", help: "azure 微软 / volcengine 火山", fType: fSelect, opts: []string{"azure", "volcengine"}, optIdx: idxOf([]string{"azure", "volcengine"}, vc.Provider)},
+		{label: "ASR 引擎", key: "provider", help: "azure 微软 / aliyun 阿里云 / tencent 腾讯云 / volcengine 火山", fType: fSelect, opts: providers, optIdx: idxOf(providers, vc.Provider)},
 		{label: "Azure Key", key: "azure_key", help: "Azure 语音服务密钥", fType: fString, input: ti(vc.AzureKey)},
 		{label: "Azure 区域", key: "azure_region", help: "例: eastasia / southeastasia / eastus", fType: fString, input: ti(vc.AzureRegion)},
+		{label: "阿里云 Appkey", key: "aliyun_appkey", help: "智能语音交互项目 Appkey", fType: fString, input: ti(vc.AliyunAppKey)},
+		{label: "阿里云 AK ID", key: "aliyun_access_key_id", help: "AccessKey ID", fType: fString, input: ti(vc.AliyunAccessKeyID)},
+		{label: "阿里云 AK Secret", key: "aliyun_access_key_secret", help: "AccessKey Secret", fType: fString, input: ti(vc.AliyunAccessKeySecret)},
+		{label: "腾讯云 AppID", key: "tencent_app_id", help: "账号 AppID", fType: fString, input: ti(vc.TencentAppID)},
+		{label: "腾讯云 SecretId", key: "tencent_secret_id", help: "API 密钥 SecretId", fType: fString, input: ti(vc.TencentSecretID)},
+		{label: "腾讯云 SecretKey", key: "tencent_secret_key", help: "API 密钥 SecretKey", fType: fString, input: ti(vc.TencentSecretKey)},
 		{label: "App Key", key: "app_key", help: "火山 App ID", fType: fString, input: ti(vc.AppKey)},
 		{label: "Access Key", key: "access_key", help: "火山 Access Token", fType: fString, input: ti(vc.AccessKey)},
 		{label: "自动上屏", key: "auto_submit", help: "识别后自动粘贴", fType: fToggle, boolVal: vc.AutoSubmit},
@@ -230,6 +237,18 @@ func (m *Model) save() {
 			vc.AzureKey = f.input.Value()
 		case "azure_region":
 			vc.AzureRegion = f.input.Value()
+		case "aliyun_appkey":
+			vc.AliyunAppKey = f.input.Value()
+		case "aliyun_access_key_id":
+			vc.AliyunAccessKeyID = f.input.Value()
+		case "aliyun_access_key_secret":
+			vc.AliyunAccessKeySecret = f.input.Value()
+		case "tencent_app_id":
+			vc.TencentAppID = f.input.Value()
+		case "tencent_secret_id":
+			vc.TencentSecretID = f.input.Value()
+		case "tencent_secret_key":
+			vc.TencentSecretKey = f.input.Value()
 		case "app_key":
 			vc.AppKey = f.input.Value()
 		case "access_key":
@@ -489,7 +508,8 @@ func (m *Model) renderField(i int, f field) string {
 	switch f.fType {
 	case fString:
 		v := f.input.Value()
-		if (f.key == "access_key" || f.key == "azure_key") && !editing && len(v) > 8 {
+		secret := f.key == "access_key" || f.key == "azure_key" || f.key == "aliyun_access_key_secret" || f.key == "tencent_secret_key"
+		if secret && !editing && len(v) > 8 {
 			v = v[:8] + "***"
 		}
 		if editing {

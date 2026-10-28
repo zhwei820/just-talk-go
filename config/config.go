@@ -68,10 +68,18 @@ type VoiceConfig struct {
 	Language    string `toml:"language"`
 	AutoSubmit  bool   `toml:"auto_submit"`
 
-	// Provider is "azure" (default) or "volcengine".
+	// Provider is "azure" (default), "aliyun", "tencent" or "volcengine".
 	Provider    string `toml:"provider"`
 	AzureKey    string `toml:"azure_key"`
 	AzureRegion string `toml:"azure_region"`
+
+	AliyunAppKey          string `toml:"aliyun_appkey"`
+	AliyunAccessKeyID     string `toml:"aliyun_access_key_id"`
+	AliyunAccessKeySecret string `toml:"aliyun_access_key_secret"`
+
+	TencentAppID     string `toml:"tencent_app_id"`
+	TencentSecretID  string `toml:"tencent_secret_id"`
+	TencentSecretKey string `toml:"tencent_secret_key"`
 
 	AppKey    string `toml:"app_key"`    // v1
 	AccessKey string `toml:"access_key"` // v1

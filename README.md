@@ -14,7 +14,7 @@ Just Talk 是一个面向桌面环境的语音输入工具。它通过全局快�
 
 - 全局快捷键录音，支持 `toggle` 和 `hold` 两种模式。
 - 语音热键限定为适合作为全局快捷键的按键：支持纯修饰键、功能键、Tab、CapsLock、方向键和导航键等；不支持字母、数字、标点、空格等普通字符键。
-- 流式 ASR：默认微软 Azure 语音服务，可切换为豆包大模型（火山引擎）。
+- 流式 ASR：默认微软 Azure 语音服务，可切换为阿里云智能语音交互、腾讯云实时语音识别或豆包大模型（火山引擎）。
 - 自动复制到剪贴板，支持自动上屏。
 - Wayland / X11 / macOS 顶层录音状态胶囊提示。
 - TUI 配置界面，支持热键、模式、自动上屏、停止延迟、热词等配置。
@@ -127,6 +127,26 @@ azure_region = "eastasia"
 ```
 
 使用火山引擎时设 `provider = "volcengine"`，并填写 `app_key`、`access_key`。
+
+阿里云（在智能语音交互控制台创建项目取 Appkey，识别语言由项目设置决定；热词需在控制台配置，`hotwords` 对阿里云不生效）：
+
+```toml
+[voice]
+provider = "aliyun"
+aliyun_appkey = "<项目 Appkey>"
+aliyun_access_key_id = "<AccessKey ID>"
+aliyun_access_key_secret = "<AccessKey Secret>"
+```
+
+腾讯云（AppID 见账号信息，SecretId / SecretKey 见访问管理的 API 密钥）：
+
+```toml
+[voice]
+provider = "tencent"
+tencent_app_id = "<AppID>"
+tencent_secret_id = "<SecretId>"
+tencent_secret_key = "<SecretKey>"
+```
 
 热词示例：
 

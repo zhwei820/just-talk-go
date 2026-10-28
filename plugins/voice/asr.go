@@ -17,11 +17,20 @@ type ASRConfig struct {
 	Provider    string
 	AzureKey    string
 	AzureRegion string
-	AppKey      string
-	AccessKey   string
-	ResourceID  string
-	Language    string
-	Hotwords    []string
+
+	AliyunAppKey          string
+	AliyunAccessKeyID     string
+	AliyunAccessKeySecret string
+
+	TencentAppID     string
+	TencentSecretID  string
+	TencentSecretKey string
+
+	AppKey     string
+	AccessKey  string
+	ResourceID string
+	Language   string
+	Hotwords   []string
 }
 
 type asrStream interface {
@@ -36,8 +45,13 @@ type asrStream interface {
 }
 
 func newASRStream(cfg ASRConfig, logger *slog.Logger) asrStream {
-	if cfg.Provider == "volcengine" {
+	switch cfg.Provider {
+	case "volcengine":
 		return NewASRClient(cfg, logger)
+	case "aliyun":
+		return NewAliyunASRClient(cfg, logger)
+	case "tencent":
+		return NewTencentASRClient(cfg, logger)
 	}
 	return NewAzureASRClient(cfg, logger)
 }

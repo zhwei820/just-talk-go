@@ -187,7 +187,7 @@ func (c *AzureASRClient) Final() <-chan struct{}    { return c.final }
 func (c *AzureASRClient) LastText() string {
 	c.textMu.RLock()
 	defer c.textMu.RUnlock()
-	return c.joinLocked(c.committed, c.partial)
+	return joinASRText(c.cfg.Language, c.committed, c.partial)
 }
 
 func (c *AzureASRClient) ReceiveLoop(ctx context.Context) {
@@ -238,7 +238,7 @@ func (c *AzureASRClient) handleMessage(data []byte) {
 		}
 		c.textMu.Lock()
 		c.partial = resp.Text
-		text := c.joinLocked(c.committed, c.partial)
+		text := joinASRText(c.cfg.Language, c.committed, c.partial)
 		c.textMu.Unlock()
 		c.resultCh <- ASRResult{Text: text}
 	case "speech.phrase":
@@ -252,7 +252,7 @@ func (c *AzureASRClient) handleMessage(data []byte) {
 		c.textMu.Lock()
 		c.partial = ""
 		if resp.RecognitionStatus == "Success" && resp.DisplayText != "" {
-			c.committed = c.joinLocked(c.committed, resp.DisplayText)
+			c.committed = joinASRText(c.cfg.Language, c.committed, resp.DisplayText)
 		}
 		text := c.committed
 		c.textMu.Unlock()
@@ -278,12 +278,12 @@ func (c *AzureASRClient) handleMessage(data []byte) {
 	}
 }
 
-// joinLocked joins recognized segments; CJK languages need no separator.
-func (c *AzureASRClient) joinLocked(a, b string) string {
+// joinASRText joins recognized segments; CJK languages need no separator.
+func joinASRText(language, a, b string) string {
 	if a == "" || b == "" {
 		return a + b
 	}
-	lang := strings.ToLower(c.cfg.Language)
+	lang := strings.ToLower(language)
 	if strings.HasPrefix(lang, "zh") || strings.HasPrefix(lang, "ja") || strings.HasPrefix(lang, "ko") {
 		return a + b
 	}

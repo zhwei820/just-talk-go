@@ -14,7 +14,7 @@ It is built for people who want to type less and speak more while coding, chatti
 
 - Global hotkey recording with `toggle` and `hold` modes.
 - Voice hotkeys are limited to keys suitable for global shortcuts: modifiers, function keys, Tab, CapsLock, arrow/navigation keys, and similar non-text keys. Letters, digits, punctuation, Space, and other text-producing keys are rejected.
-- Streaming ASR: Microsoft Azure Speech by default, with Doubao (Volcengine) as an alternative.
+- Streaming ASR: Microsoft Azure Speech by default, with Alibaba Cloud Intelligent Speech Interaction, Tencent Cloud real-time ASR, or Doubao (Volcengine) as alternatives.
 - Clipboard copy and automatic text submission.
 - Always-on-top recording status overlay for Wayland, X11, and macOS.
 - TUI configuration for hotkeys, mode, auto-submit, stop delay, hotwords, and related settings.
@@ -127,6 +127,26 @@ azure_region = "eastasia"
 ```
 
 To use Volcengine, set `provider = "volcengine"` and fill in `app_key` and `access_key`.
+
+Alibaba Cloud (create a project in the Intelligent Speech Interaction console to get an Appkey; the recognition language comes from the project settings, and hotwords must be configured in the console because `hotwords` does not apply to Alibaba Cloud):
+
+```toml
+[voice]
+provider = "aliyun"
+aliyun_appkey = "<project Appkey>"
+aliyun_access_key_id = "<AccessKey ID>"
+aliyun_access_key_secret = "<AccessKey Secret>"
+```
+
+Tencent Cloud (AppID is on the account page; SecretId / SecretKey are under CAM API keys):
+
+```toml
+[voice]
+provider = "tencent"
+tencent_app_id = "<AppID>"
+tencent_secret_id = "<SecretId>"
+tencent_secret_key = "<SecretKey>"
+```
 
 Hotword example:
 

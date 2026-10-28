@@ -517,6 +517,8 @@ func (p *VoicePlugin) startRecording() {
 	vc := p.cfg.Voice
 	asrCfg := ASRConfig{
 		Provider: vc.Provider, AzureKey: vc.AzureKey, AzureRegion: vc.AzureRegion,
+		AliyunAppKey: vc.AliyunAppKey, AliyunAccessKeyID: vc.AliyunAccessKeyID, AliyunAccessKeySecret: vc.AliyunAccessKeySecret,
+		TencentAppID: vc.TencentAppID, TencentSecretID: vc.TencentSecretID, TencentSecretKey: vc.TencentSecretKey,
 		AppKey: vc.AppKey, AccessKey: vc.AccessKey, ResourceID: vc.ResourceID,
 		Language: vc.Language, Hotwords: vc.Hotwords,
 	}
